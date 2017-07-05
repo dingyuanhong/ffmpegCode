@@ -187,7 +187,7 @@ int testEncode()
 	{
 		return -1;
 	}
-	ret = encode.NewVideoStream(in_w, in_h);
+	ret = encode.NewVideoStream(in_w, in_h, AV_PIX_FMT_YUV420P);
 	if (ret != 0)
 	{
 		return -1;

@@ -9,7 +9,7 @@ public:
 	int Open(const char * file);
 	void Close();
 
-	int NewVideoStream(int width, int height);
+	int NewVideoStream(int width, int height, AVPixelFormat format);
 	int NewAudioStream();
 
 	int WriteHeader();

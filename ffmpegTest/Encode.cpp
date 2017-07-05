@@ -61,7 +61,7 @@ int Encode::Open(const char * file)
 	return 0;
 }
 
-int Encode::NewVideoStream(int width,int height)
+int Encode::NewVideoStream(int width,int height, AVPixelFormat format)
 {
 	videoStream_ = avformat_new_stream(formatCtx_, 0);
 	//video_st->time_base.num = 1;   
@@ -76,7 +76,7 @@ int Encode::NewVideoStream(int width,int height)
 	//videoCodecCtx_->codec_id =AV_CODEC_ID_HEVC;  
 	videoCodecCtx_->codec_id = output_->video_codec;
 	videoCodecCtx_->codec_type = AVMEDIA_TYPE_VIDEO;
-	videoCodecCtx_->pix_fmt = AV_PIX_FMT_YUV420P;
+	videoCodecCtx_->pix_fmt = format;
 	videoCodecCtx_->width = width;
 	videoCodecCtx_->height = height;
 	videoCodecCtx_->bit_rate = 400000;
@@ -158,14 +158,14 @@ void Encode::Close()
 {
 	if (videoStream_) {
 		avcodec_close(videoStream_->codec);
-		avcodec_free_context(&videoStream_->codec);
+		//avcodec_free_context(&videoStream_->codec);
 	}
 	if (audioStream_) {
 		avcodec_close(audioStream_->codec);
-		avcodec_free_context(&audioStream_->codec);
+		//avcodec_free_context(&audioStream_->codec);
 	}
 	if (formatCtx_) {
-		avio_close(formatCtx_->pb);
+		avio_closep(&formatCtx_->pb);
 		avformat_free_context(formatCtx_);
 	}
 
@@ -222,6 +222,10 @@ int OriginalEncode::EncodeVideo(AVFrame* frame)
 		printf("Succeed to encode frame size:%5d\n", videoPacket_.size);
 		ret = WriteVideo(&videoPacket_);
 		av_free_packet(&videoPacket_);
+		return 1;
+	}
+	else
+	{
 		return 0;
 	}
 
