@@ -51,11 +51,18 @@ int resetPacket(AVPacket * packet, AVPacket * pkt)
 	return 0;
 }
 
+//#define NEW_API
+
 int decodeVideo(AVCodecContext * context, AVPacket * packet, AVFrame * frame)
 {
+#ifdef NEW_API
 	int ret = avcodec_send_packet(context, packet);
 	if (ret == 0)ret = avcodec_receive_frame(context, frame);
-	if (ret == 0) {
+#else
+	int got_picture_ptr = 0;
+	int ret = avcodec_decode_video2(context,frame,&got_picture_ptr,packet);
+#endif
+	if (ret == 0 && got_picture_ptr > 0) {
 		printf("%Id %d %d\n", packet->pts, frame->width, frame->height);
 
 		av_frame_unref(frame);
@@ -93,7 +100,11 @@ int testFFmpeg()
 
 	for (size_t i = 0; i < formatContext->nb_streams; i++)
 	{
+#ifdef NEW_API
 		if (formatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+#else
+		if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+#endif
 		{
 			videoIndex = (int)i;
 			break;
@@ -106,7 +117,7 @@ int testFFmpeg()
 		avformat_close_input(&formatContext);
 		return -1;
 	}
-
+#ifdef NEW_API
 	AVCodecParameters * paramter = formatContext->streams[videoIndex]->codecpar;
 
 	AVCodec * codec = avcodec_find_decoder(paramter->codec_id);
@@ -114,7 +125,11 @@ int testFFmpeg()
 	AVCodecContext * codecContext = avcodec_alloc_context3(codec);
 
 	avcodec_parameters_to_context(codecContext, paramter);
+#else
 
+	AVCodec * codec = avcodec_find_decoder(formatContext->streams[videoIndex]->codec->codec_id);
+	AVCodecContext * codecContext = formatContext->streams[videoIndex]->codec;
+#endif
 	ret = avcodec_open2(codecContext, codec, NULL);
 
 	if (ret != 0)
@@ -125,10 +140,17 @@ int testFFmpeg()
 		return -1;
 	}
 
+#ifdef NEW_API
 	AVPacket * packet = av_packet_alloc();
+	AVPacket * pkt = av_packet_alloc();
+#else
+	AVPacket * packet = (AVPacket*)av_malloc(sizeof(AVPacket));
+	av_init_packet(packet);
+	AVPacket * pkt = (AVPacket*)av_malloc(sizeof(AVPacket));//av_packet_alloc();
+	av_init_packet(pkt);
+#endif
 	AVFrame * frame = av_frame_alloc();
 
-	AVPacket * pkt = av_packet_alloc();
 	while (true)
 	{
 		ret = av_read_frame(formatContext,packet);
@@ -165,9 +187,16 @@ int testFFmpeg()
 	}
 
 
-	av_packet_free(&packet);
 	av_frame_free(&frame);
+#ifdef NEW_API
+	av_packet_free(&packet);
 	av_packet_free(&pkt);
+#else
+	av_free_packet(packet);
+	av_free(packet);
+	av_free_packet(pkt);
+	av_free(pkt);
+#endif
 
 	avformat_close_input(&formatContext);
 	avcodec_close(codecContext);
