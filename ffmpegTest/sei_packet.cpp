@@ -1,6 +1,7 @@
 #include "sei_packet.h"
 #include <stdio.h>
 #include <string.h>
+#include <minmax.h>
 
 #define UUID_SIZE 16
 
@@ -49,8 +50,14 @@ int fill_sei_packet(unsigned char * packet,bool isAnnexb, const char * content, 
 
 	//NALU开始码
 	unsigned int * size_ptr = &nalu_size;
-	memcpy(data, size_ptr, sizeof(unsigned int));
-	//memcpy(data, start_code, sizeof(unsigned int));
+	if (isAnnexb)
+	{
+		memcpy(data, start_code, sizeof(unsigned int));
+	}
+	else
+	{
+		memcpy(data, size_ptr, sizeof(unsigned int));
+	}
 	data += sizeof(unsigned int);
 
 	unsigned char * sei = data;
@@ -127,26 +134,80 @@ int get_sei_buffer(unsigned char * data,size_t size, char * buffer, int *count)
 
 int get_sei_content(unsigned char * packet, size_t size,char * buffer,int *count)
 {
-	unsigned char *data = packet;
-	//暂时只处理MP4封装,annexb暂为处理
-	//当前NALU
-	while (data < packet + size) {
-		//MP4格式起始码/长度
-		unsigned int *length = (unsigned int *)data;
-		int nalu_size = (int)reversebytes(*length);
-		//NALU header
-		if ((*(data + 4) & 0x1F) == 6)
-		{
-			//SEI
-			unsigned char * sei = data + 4 + 1;
+	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x00,0x01 };
+	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
 
-			int ret = get_sei_buffer(sei, (packet + size - sei),buffer,count);
-			if (ret != -1)
+	unsigned char *data = packet;
+	bool isAnnexb = false;
+	if ((size > 3 && memcmp(data, ANNEXB_CODE_LOW,3) == 0) ||
+		(size > 4 && memcmp(data, ANNEXB_CODE,4) == 0)
+		)
+	{
+		isAnnexb = true;
+	}
+	//暂时只处理MP4封装,annexb暂为处理
+	if (isAnnexb)
+	{
+		while (data < packet + size) {
+			if ((packet + size - data) > 4 && data[0] == 0x00 && data[1] == 0x00)
 			{
-				return ret;
+				int startCodeSize = 2;
+				if (data[2] == 0x01)
+				{
+					startCodeSize = 3;
+				}
+				else if(data[2] == 0x00 && data[3] == 0x01)
+				{
+					startCodeSize = 4;
+				}
+				if (startCodeSize == 3 || startCodeSize == 4)
+				{
+					if ((packet + size - data) > (startCodeSize + 1) && 
+						(data[startCodeSize] & 0x1F) == 6)
+					{
+						//SEI
+						unsigned char * sei = data + startCodeSize + 1;
+
+						int ret = get_sei_buffer(sei, (packet + size - sei), buffer, count);
+						if (ret != -1)
+						{
+							return ret;
+						}
+					}
+					data += startCodeSize + 1;
+				}
+				else
+				{
+					data += startCodeSize + 1;
+				}
+			}
+			else
+			{
+				data++;
 			}
 		}
-		data += 4 + nalu_size;
+	}
+	else
+	{
+		//当前NALU
+		while (data < packet + size) {
+			//MP4格式起始码/长度
+			unsigned int *length = (unsigned int *)data;
+			int nalu_size = (int)reversebytes(*length);
+			//NALU header
+			if ((*(data + 4) & 0x1F) == 6)
+			{
+				//SEI
+				unsigned char * sei = data + 4 + 1;
+
+				int ret = get_sei_buffer(sei, min(nalu_size,(packet + size - sei)),buffer,count);
+				if (ret != -1)
+				{
+					return ret;
+				}
+			}
+			data += 4 + nalu_size;
+		}
 	}
 	return -1;
 }
