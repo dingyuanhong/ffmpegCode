@@ -42,13 +42,25 @@ int resetPacket(AVPacket * packet, AVPacket * pkt)
 	pkt->pts = packet->pts;
 	pkt->dts = packet->dts;
 
-	//填充原始数据
-	memcpy(pkt->data, packet->data, packet->size);
+	bool addInHead = true;
+	if (addInHead)
+	{
+		//填充原始数据
+		memcpy(pkt->data + sei_packet_size, packet->data, packet->size);
+		//填充自定义数据
+		unsigned char * sei = (unsigned char*)pkt->data;
+		fill_sei_packet(sei, false, str.data(), str.size());
+	}
+	else
+	{
+		//填充原始数据
+		memcpy(pkt->data, packet->data, packet->size);
 
-	//填充自定义数据
-	unsigned char * sei = (unsigned char*)pkt->data + packet->size;
-	fill_sei_packet(sei, false, str.data(), str.size());
-
+		//填充自定义数据
+		unsigned char * sei = (unsigned char*)pkt->data + packet->size;
+		fill_sei_packet(sei, false, str.data(), str.size());
+	}
+	
 	return 0;
 }
 
