@@ -3,6 +3,7 @@
 #include "json\json.h"
 #pragma comment(lib,"lib_json.lib")
 #include "Encode.h"
+#include "SEIEncode.h"
 
 AVFormatContext * av_open_file(const char * file)
 {
@@ -62,17 +63,22 @@ int decodeVideo(AVCodecContext * context, AVPacket * packet, AVFrame * frame)
 	int got_picture_ptr = 0;
 	int ret = avcodec_decode_video2(context,frame,&got_picture_ptr,packet);
 #endif
-	if (ret == 0 && got_picture_ptr > 0) {
-		printf("%Id %d %d\n", packet->pts, frame->width, frame->height);
-
-		av_frame_unref(frame);
-		return 0;
+	if (got_picture_ptr > 0) {
+		printf("decode:%lld %d %d\n", packet->pts, frame->width, frame->height);
+		return 1;
 	}
 	else
 	{
-		char str[1024];
-		av_make_error_string(str, 1024, ret);
-		printf("decodeVideo Error:%d %s\n", ret, str);
+		if (ret < 0)
+		{
+			char str[1024];
+			av_make_error_string(str, 1024, ret);
+			printf("decodeVideo Error:%d %s\n", ret, str);
+		}
+		else
+		{
+			return 0;
+		}
 	}
 	return ret;
 }
@@ -83,7 +89,7 @@ int testFFmpeg()
 
 	AVFormatContext * formatContext = avformat_alloc_context();
 
-	int ret = avformat_open_input(&formatContext, "../sp.mp4", NULL, NULL);
+	int ret = avformat_open_input(&formatContext, "../1.mp4", NULL, NULL);
 	if (ret != 0) {
 		avformat_close_input(&formatContext);
 		return -1;
@@ -159,21 +165,20 @@ int testFFmpeg()
 			if (packet->stream_index == videoIndex)
 			{
 				//修改包裹
-				resetPacket(packet, pkt);
+				//resetPacket(packet, pkt);
 				//解码
-				decodeVideo(codecContext, pkt, frame);
-
+				ret = decodeVideo(codecContext, packet, frame);
+				if (ret == 1)
+				{
+					av_frame_unref(frame);
+				}
 				//取出自定义数据
 				char selfPacket[255] = {0};
 				int count = 255;
-				int ret = get_sei_content(pkt->data, pkt->size, selfPacket,&count);
+				ret = get_sei_content(packet->data, packet->size, selfPacket,&count);
 				if (ret > 0)
 				{
-					Json::Reader reader;
-					Json::Value value;
-					reader.parse(selfPacket, selfPacket + count,value);
-					int vCount = value.size();
-					printf("%Id\n",value[0].asInt64());
+					printf("sei: %s\n", selfPacket);
 				}
 				
 				av_packet_unref(pkt);
@@ -198,10 +203,11 @@ int testFFmpeg()
 	av_free(pkt);
 #endif
 
-	avformat_close_input(&formatContext);
 	avcodec_close(codecContext);
+#ifdef NEW_API
 	avcodec_free_context(&codecContext);
-	
+#endif
+	avformat_close_input(&formatContext);
 	return 0;
 }
 
@@ -210,8 +216,8 @@ int testEncode()
 	int in_w = 480, in_h = 272;                              //Input data's width and height  
 
 
-	OriginalEncode encode;
-	int ret = encode.Open("./1.mp4");
+	SEIEncode encode;
+	int ret = encode.Open("../1.mp4");
 	if (ret != 0)
 	{
 		return -1;
@@ -275,6 +281,6 @@ int testEncode()
 
 int main()
 {
-	return testEncode();
+	//return testEncode();
 	return testFFmpeg();
 }

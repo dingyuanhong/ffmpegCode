@@ -154,12 +154,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Encode.cpp" />
+    <ClCompile Include="SEIEncode.cpp" />
     <ClCompile Include="sei_packet.cpp" />
     <ClCompile Include="SourceTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Encode.h" />
     <ClInclude Include="EvHeade.h" />
+    <ClInclude Include="SEIEncode.h" />
     <ClInclude Include="sei_packet.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

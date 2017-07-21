@@ -33,14 +33,14 @@ class OriginalEncode
 	:public Encode
 {
 public:
-	int EncodeAudio(AVFrame* frame);
-	int EncodeVideo(AVFrame* frame);
-	int FlushAudio();
-	int FlushVideo();
+	virtual int EncodeAudio(AVFrame* frame);
+	virtual int EncodeVideo(AVFrame* frame);
+	virtual int FlushAudio();
+	virtual int FlushVideo();
 
 	AVStream* GetVideoStream();
 	AVStream* GetAudioStream();
-private:
+protected:
 	AVPacket videoPacket_;
 	AVPacket audioPacket_;
 };

@@ -135,7 +135,7 @@ int get_sei_buffer(unsigned char * data, uint32_t size, char * buffer, int *coun
 
 int get_sei_content(unsigned char * packet, uint32_t size,char * buffer,int *count)
 {
-	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x00,0x01 };
+	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
 	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
 
 	unsigned char *data = packet;
