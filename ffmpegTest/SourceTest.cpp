@@ -222,7 +222,7 @@ int testEncode()
 	{
 		return -1;
 	}
-	ret = encode.NewVideoStream(in_w, in_h, AV_PIX_FMT_YUV420P);
+	ret = encode.NewVideoStream(in_w, in_h, AV_PIX_FMT_YUV420P,10);
 	if (ret != 0)
 	{
 		return -1;
@@ -262,7 +262,7 @@ int testEncode()
 		frame->format = codecContext->pix_fmt;
 		//PTS  
 		//pFrame->pts=i;
-		frame->pts = i*(stream->time_base.den) / ((stream->time_base.num) * 25);
+		frame->pts = i*(stream->time_base.den) / ((stream->time_base.num) * codecContext->time_base.den);
 
 		encode.EncodeVideo(frame);
 	}
@@ -281,6 +281,6 @@ int testEncode()
 
 int main()
 {
-	//return testEncode();
+	return testEncode();
 	return testFFmpeg();
 }

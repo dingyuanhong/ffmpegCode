@@ -61,15 +61,16 @@ int Encode::Open(const char * file)
 	return 0;
 }
 
-int Encode::NewVideoStream(int width,int height, AVPixelFormat format)
+int Encode::NewVideoStream(int width,int height, AVPixelFormat format,int frameRate)
 {
 	videoStream_ = avformat_new_stream(formatCtx_, 0);
-	//video_st->time_base.num = 1;   
-	//video_st->time_base.den = 25;    
 
 	if (videoStream_ == NULL) {
 		return -1;
 	}
+	videoStream_->time_base.num = 1;
+	videoStream_->time_base.den = frameRate;
+
 	//Param that must set  
 	videoCodecCtx_ = videoStream_->codec;
 
@@ -83,7 +84,7 @@ int Encode::NewVideoStream(int width,int height, AVPixelFormat format)
 	videoCodecCtx_->gop_size = 250;
 
 	videoCodecCtx_->time_base.num = 1;
-	videoCodecCtx_->time_base.den = 25;
+	videoCodecCtx_->time_base.den = frameRate;
 
 	//H264  
 	//pCodecCtx->me_range = 16;  
