@@ -1,9 +1,14 @@
-#pragma once
+#ifndef SEI_PACKET_H
+#define SEI_PACKET_H
 
-unsigned int reversebytes(unsigned int value);
+#include <stdint.h>
 
-size_t get_sei_packet_size(size_t size);
+uint32_t reversebytes(uint32_t value);
 
-int fill_sei_packet(unsigned char * packet, bool isAnnexb, const char * content, size_t size);
+uint32_t get_sei_packet_size(uint32_t size);
 
-int get_sei_content(unsigned char * packet, size_t size, char * buffer, int *count);
+int fill_sei_packet(unsigned char * packet, bool isAnnexb, const char * content, uint32_t size);
+
+int get_sei_content(unsigned char * packet, uint32_t size, char * buffer, int *count);
+
+#endif

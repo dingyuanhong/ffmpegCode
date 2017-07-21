@@ -1,7 +1,8 @@
 #include "sei_packet.h"
 #include <stdio.h>
 #include <string.h>
-#include <minmax.h>
+
+#define min(X,Y) ((X) < (Y) ? (X) : (Y))
 
 #define UUID_SIZE 16
 
@@ -13,19 +14,19 @@ static unsigned char uuid[] = { 0x54, 0x80, 0x83, 0x97, 0xf0, 0x23, 0x47, 0x4b, 
 //开始码
 static unsigned char start_code[] = {0x00,0x00,0x00,0x01};
 
-unsigned int reversebytes(unsigned int value) {
+uint32_t reversebytes(uint32_t value) {
 	return (value & 0x000000FFU) << 24 | (value & 0x0000FF00U) << 8 |
 		(value & 0x00FF0000U) >> 8 | (value & 0xFF000000U) >> 24;
 }
 
-size_t get_sei_nalu_size(size_t content)
+uint32_t get_sei_nalu_size(uint32_t content)
 {
 	//SEI payload size
-	size_t sei_payload_size = content + UUID_SIZE;
+	uint32_t sei_payload_size = content + UUID_SIZE;
 	//NALU + payload类型 + 数据长度 + 数据
-	size_t sei_size = 1 + 1 + (sei_payload_size / 0xFF + (sei_payload_size % 0xFF != 0 ? 1 : 0)) + sei_payload_size;
+	uint32_t sei_size = 1 + 1 + (sei_payload_size / 0xFF + (sei_payload_size % 0xFF != 0 ? 1 : 0)) + sei_payload_size;
 	//截止码
-	size_t tail_size = 2;
+	uint32_t tail_size = 2;
 	if (sei_size % 2 == 1)
 	{
 		tail_size -= 1;
@@ -35,16 +36,16 @@ size_t get_sei_nalu_size(size_t content)
 	return sei_size;
 }
 
-size_t get_sei_packet_size(size_t size)
+uint32_t get_sei_packet_size(uint32_t size)
 {
 	return get_sei_nalu_size(size) + 4;
 }
 
-int fill_sei_packet(unsigned char * packet,bool isAnnexb, const char * content, size_t size)
+int fill_sei_packet(unsigned char * packet,bool isAnnexb, const char * content, uint32_t size)
 {
 	unsigned char * data = (unsigned char*)packet;
 	unsigned int nalu_size = (unsigned int)get_sei_nalu_size(size);
-	size_t sei_size = nalu_size;
+	uint32_t sei_size = nalu_size;
 	//大端转小端
 	nalu_size = reversebytes(nalu_size);
 
@@ -95,7 +96,7 @@ int fill_sei_packet(unsigned char * packet,bool isAnnexb, const char * content, 
 	return true;
 }
 
-int get_sei_buffer(unsigned char * data,size_t size, char * buffer, int *count)
+int get_sei_buffer(unsigned char * data, uint32_t size, char * buffer, int *count)
 {
 	unsigned char * sei = data;
 	int sei_type = 0;
@@ -132,7 +133,7 @@ int get_sei_buffer(unsigned char * data,size_t size, char * buffer, int *count)
 	return -1;
 }
 
-int get_sei_content(unsigned char * packet, size_t size,char * buffer,int *count)
+int get_sei_content(unsigned char * packet, uint32_t size,char * buffer,int *count)
 {
 	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x00,0x01 };
 	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
