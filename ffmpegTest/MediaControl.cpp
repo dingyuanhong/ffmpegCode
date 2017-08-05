@@ -30,6 +30,9 @@ MediaControl::MediaControl()
 MediaControl::~MediaControl()
 {
     Close();
+#ifndef _WIN32
+    pthread_mutex_destroy(&lock);
+#endif
 }
 
 int MediaControl::Open(const char * file)
@@ -70,9 +73,6 @@ int MediaControl::Close()
         decoder = NULL;
     }
     source.Close();
-#ifndef _WIN32
-    pthread_mutex_destroy(&lock);
-#endif
     return 0;
 }
 
