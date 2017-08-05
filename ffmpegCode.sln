@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ffmpegTest", "ffmpegTest\ffmpegTest.vcxproj", "{44BCBD78-2A14-4F1C-98E1-89C426800C17}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EvoInterface", "EvoInterface\EvoInterface.vcxproj", "{5043EAF6-F665-40BD-8541-3216E0C5AAC7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,14 @@ Global
 		{44BCBD78-2A14-4F1C-98E1-89C426800C17}.Release|x64.Build.0 = Release|x64
 		{44BCBD78-2A14-4F1C-98E1-89C426800C17}.Release|x86.ActiveCfg = Release|Win32
 		{44BCBD78-2A14-4F1C-98E1-89C426800C17}.Release|x86.Build.0 = Release|Win32
+		{5043EAF6-F665-40BD-8541-3216E0C5AAC7}.Debug|x64.ActiveCfg = Debug|x64
+		{5043EAF6-F665-40BD-8541-3216E0C5AAC7}.Debug|x64.Build.0 = Debug|x64
+		{5043EAF6-F665-40BD-8541-3216E0C5AAC7}.Debug|x86.ActiveCfg = Debug|Win32
+		{5043EAF6-F665-40BD-8541-3216E0C5AAC7}.Debug|x86.Build.0 = Debug|Win32
+		{5043EAF6-F665-40BD-8541-3216E0C5AAC7}.Release|x64.ActiveCfg = Release|x64
+		{5043EAF6-F665-40BD-8541-3216E0C5AAC7}.Release|x64.Build.0 = Release|x64
+		{5043EAF6-F665-40BD-8541-3216E0C5AAC7}.Release|x86.ActiveCfg = Release|Win32
+		{5043EAF6-F665-40BD-8541-3216E0C5AAC7}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
