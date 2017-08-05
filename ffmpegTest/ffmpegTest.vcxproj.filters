@@ -27,6 +27,9 @@
     <ClCompile Include="SEIEncode.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="flv.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EvHeade.h">
@@ -39,6 +42,9 @@
       <Filter>源文件</Filter>
     </ClInclude>
     <ClInclude Include="SEIEncode.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="flv.h">
       <Filter>源文件</Filter>
     </ClInclude>
   </ItemGroup>
