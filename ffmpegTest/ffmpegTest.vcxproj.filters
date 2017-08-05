@@ -13,39 +13,66 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{c26c2c0a-d7d9-4e0c-bff5-0d668cc5c9ea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="SourceTest.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="sei_packet.cpp">
+    <ClCompile Include="testffmpeg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="testEncode.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="testFFmpegIO.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="testFLV.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="testMeidaControl.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Encode.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="SEIEncode.cpp">
-      <Filter>源文件</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="flv.cpp">
-      <Filter>源文件</Filter>
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="MediaControl.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="sei_packet.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SEIEncode.cpp">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EvHeade.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
-    <ClInclude Include="sei_packet.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
     <ClInclude Include="Encode.h">
-      <Filter>源文件</Filter>
+      <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="SEIEncode.h">
-      <Filter>源文件</Filter>
+    <ClInclude Include="EvHeade.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="exterlFunction.h">
+      <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="flv.h">
-      <Filter>源文件</Filter>
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="MediaControl.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="sei_packet.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SEIEncode.h">
+      <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
