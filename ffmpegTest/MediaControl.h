@@ -37,6 +37,7 @@ private:
     EvoMediaSource source;
     EvoVideoConvert convert;
     VideoDecoder *decoder;
+	AVCodecContext *codecContext;
 
     int64_t timestamp_now;
     int64_t timestamp_last;

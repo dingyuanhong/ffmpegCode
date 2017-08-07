@@ -19,7 +19,8 @@ MediaControl::MediaControl()
     :bStop(false),bPause(false)
     ,timestamp_last(0),timestamp_now(0),
      time_last(0),thread(0),
-     decoder(NULL),frame_last(NULL)
+     decoder(NULL),frame_last(NULL),
+	codecContext(NULL)
 {
 #ifndef _WIN32
     pthread_mutex_init(&lock,NULL);
@@ -40,16 +41,61 @@ int MediaControl::Open(const char * file)
     int ret = source.Open(file);
     if(ret == 0)
     {
-        AVStream * stream = source.GetVideoStream();
-        if(stream == NULL) return -1;
-        AVCodec *codec = (AVCodec*)stream->codec->codec;
-        if (codec == NULL) codec = avcodec_find_decoder(stream->codec->codec_id);
-        if(codec == NULL) return -1;
-        if (avcodec_open2(stream->codec, codec, NULL) < 0)
-        {
-            return -1;
-        }
-        decoder = new VideoDecoder(stream->codec);
+		bool newContext = true;
+		if (newContext) {
+			AVCodec *codec = avcodec_find_decoder(AV_CODEC_ID_H264);
+			if (!codec) {
+				source.Close();
+				return -1;
+			}
+			codecContext = avcodec_alloc_context3(codec);
+			//codecContext->bit_rate = 4000000;
+			/*uint8_t extData[64];
+			int size = source.GetExtData(extData, 64);
+			codecContext->extradata = extData;
+			codecContext->extradata_size = size;*/
+			/*codecContext->time_base = {1,60};
+			codecContext->delay = 4;
+			codecContext->width = 3040;
+			codecContext->height = 1520;
+			codecContext->coded_width = 3040;
+			codecContext->coded_height = 1520;
+			codecContext->request_sample_fmt = AV_SAMPLE_FMT_NONE;*/
+			/*codecContext->min_prediction_order = -1;
+			codecContext->max_prediction_order = -1;
+			codecContext->bits_per_raw_sample = 8;*/
+			//设置解码器数量用以加快解码速度
+			codecContext->thread_count = 5;
+			codecContext->active_thread_type = FF_THREAD_FRAME;
+			/*codecContext->profile = 100;
+			codecContext->level = 51;
+			codecContext->framerate = { 30,1 };
+			codecContext->pkt_timebase = {1,1200000 };*/
+			if (avcodec_open2(codecContext, codec, NULL) < 0)
+			{
+				avcodec_free_context(&codecContext);
+				codecContext = NULL;
+				source.Close();
+				return -1;
+			}
+			decoder = new VideoDecoder(codecContext);
+		}
+		else {
+			AVStream * stream = source.GetVideoStream();
+			if (stream == NULL) return -1;
+			AVCodec *codec = (AVCodec*)stream->codec->codec;
+			if (codec == NULL) codec = avcodec_find_decoder(stream->codec->codec_id);
+			if (codec == NULL) {
+				source.Close();
+				return -1;
+			}
+			if (avcodec_open2(stream->codec, codec, NULL) < 0)
+			{
+				source.Close();
+				return -1;
+			}
+			decoder = new VideoDecoder(stream->codec);
+		}
     }
     return ret;
 }
@@ -72,6 +118,12 @@ int MediaControl::Close()
         delete decoder;
         decoder = NULL;
     }
+	if (codecContext != NULL)
+	{
+		avcodec_close(codecContext);
+		avcodec_free_context(&codecContext);
+		codecContext = NULL;
+	}
     source.Close();
     return 0;
 }
@@ -163,7 +215,10 @@ void MediaControl::Run()
             if(out != NULL)
             {
                 AVFrame *frame = NULL;
+				int64_t  timeBegin = av_gettime() / 1000;
                 decoder->DecodeFrame(out,&frame);
+				int64_t timeEnd = av_gettime() / 1000;
+				printf("native MeidaControl"" use:%lld\n", timeEnd - timeBegin);
                 if(frame != NULL)
                 {
 					timestamp_now = out->timestamp;
