@@ -160,6 +160,7 @@
     <ClCompile Include="Encode.cpp" />
     <ClCompile Include="flv.cpp" />
     <ClCompile Include="MediaControl.cpp" />
+    <ClCompile Include="MediaDecode.cpp" />
     <ClCompile Include="SEIEncode.cpp" />
     <ClCompile Include="sei_packet.cpp" />
     <ClCompile Include="SourceTest.cpp" />
@@ -175,6 +176,7 @@
     <ClInclude Include="exterlFunction.h" />
     <ClInclude Include="flv.h" />
     <ClInclude Include="MediaControl.h" />
+    <ClInclude Include="MediaDecode.h" />
     <ClInclude Include="SEIEncode.h" />
     <ClInclude Include="sei_packet.h" />
   </ItemGroup>

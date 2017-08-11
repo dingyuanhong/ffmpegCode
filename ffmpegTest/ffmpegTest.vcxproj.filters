@@ -51,6 +51,9 @@
     <ClCompile Include="SEIEncode.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="MediaDecode.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Encode.h">
@@ -72,6 +75,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="SEIEncode.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="MediaDecode.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

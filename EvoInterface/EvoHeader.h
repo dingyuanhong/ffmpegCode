@@ -1,7 +1,7 @@
 #ifndef EVOHEADER_H
 #define EVOHEADER_H
 
-//#define USE_NEW_API
+#define USE_NEW_API
 
 #ifdef __cplusplus
 extern "C" {

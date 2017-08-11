@@ -164,7 +164,7 @@ int EvoMediaSource::Open(const char * file, EvoMediaSourceConfig *config, enum A
 	memset(packet_,0,sizeof(AVPacket));
 	av_init_packet(packet_);
 
-	if (AV_CODEC_ID_H264 != videoStream_->codec->codec_id && codecType == AVMEDIA_TYPE_VIDEO)
+	if (codecContext_ != NULL && AV_CODEC_ID_H264 != codecContext_->codec_id && codecType == AVMEDIA_TYPE_VIDEO)
 	{
 		AnalysisVideoPPSSPS();
 	}

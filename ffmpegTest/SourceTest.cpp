@@ -14,9 +14,9 @@ int main()
 	char * file = "../1.mp4";
 	//char * infile = "../output.mp4";
 	char * infile = "../video.h264";
-	return testMediaControl(infile);
+	//return testMediaControl(infile);
 	//return testFLV(path);
-	return testFFmpegIO(path);
+	//return testFFmpegIO(path);
 	//return testEncode(file);
-	return testFFmpeg(file);
+	return testFFmpeg(infile);
 }
