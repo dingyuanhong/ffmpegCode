@@ -164,7 +164,7 @@ int EvoMediaSource::Open(const char * file, EvoMediaSourceConfig *config, enum A
 	memset(packet_,0,sizeof(AVPacket));
 	av_init_packet(packet_);
 
-	if (codecContext_ != NULL && AV_CODEC_ID_H264 != codecContext_->codec_id && codecType == AVMEDIA_TYPE_VIDEO)
+	if (codecContext_ != NULL && AV_CODEC_ID_H264 == codecContext_->codec_id && codecType == AVMEDIA_TYPE_VIDEO)
 	{
 		AnalysisVideoPPSSPS();
 	}
@@ -435,7 +435,104 @@ int EvoMediaSource::AnalysisVideoPPSSPS()
 
 	int extradata_size = codecContext_->extradata_size;
 	uint8_t * extradata = codecContext_->extradata;
+	if (IsAnnexb(extradata,extradata_size))
+	{
+		int sps_index = 0;
+		int sps_size = 0;
+		int pps_index = 0;
+		int pps_size = 0;
+		int cur_type = 0;  //1 sps 2 pps
+		uint8_t * data = extradata;
+		while (data < extradata + extradata_size - 1)
+		{
+			if (data[0] == 0x00 && data[1] == 0x00 )
+			{
+				int header_size = 2;
+				if (data[2] == 0x01)
+				{
+					header_size = 3;
+				}
+				else if (data[2] == 0x00 && data[3] == 0x01)
+				{
+					header_size = 4;
+				}
+				if (header_size != 2)
+				{
+					if ((data[header_size] & 0x1f) == 7)
+					{
+						sps_index = data + header_size - extradata;
+						if (cur_type == 2)
+						{
+							pps_size = data - extradata - pps_index;
+						}
+						cur_type = 1;
+					}
+					else if ((data[header_size] & 0x1f) == 8)
+					{
+						pps_index = data + header_size - extradata;
+						if (cur_type == 1)
+						{
+							sps_size = data - extradata - sps_index;
+						}
+						cur_type = 2;
+					}
+					else
+					{
+						cur_type = 0;
+					}
+				}
+				data += 2;
+			}
+			else
+			{
+				data += 1;
+			}
+		}
+		if (cur_type == 1)
+		{
+			sps_size = (int)(extradata_size - sps_index);
+		}
+		else if (cur_type == 2)
+		{
+			pps_size = (int)(extradata_size - pps_index);
+		}
 
+		if (sps_data_ != NULL)
+		{
+			av_free(sps_data_);
+			sps_data_ = NULL;
+		}
+		sps_size_ = 0;
+		if (pps_data_ != NULL)
+		{
+			av_free(pps_data_);
+			pps_data_ = NULL;
+		}
+		pps_size_ = 0;
+
+		if (sps_size > 0)
+		{
+			sps_data_ = (uint8_t*)av_malloc(sps_size + 4);
+			sps_data_[0] = 0x00;
+			sps_data_[1] = 0x00;
+			sps_data_[2] = 0x00;
+			sps_data_[3] = 0x01;
+			memcpy(sps_data_ + 4, extradata + sps_index, sps_size);
+			sps_size_ = sps_size + 4;
+		}
+		
+		if (pps_size > 0)
+		{
+			pps_data_ = (uint8_t*)av_malloc(pps_size + 4);
+			pps_data_[0] = 0x00;
+			pps_data_[1] = 0x00;
+			pps_data_[2] = 0x00;
+			pps_data_[3] = 0x01;
+			memcpy(pps_data_ + 4, extradata + pps_index, pps_size);
+			pps_size_ = pps_size + 4;
+		}
+		return 0;
+	}
 	/* retrieve sps and pps NAL units from extradata */
 	{
 		uint16_t unit_size;

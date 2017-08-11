@@ -36,6 +36,31 @@ MediaControl::~MediaControl()
 #endif
 }
 
+inline uint8_t * MakeExtraData(uint8_t * sps, int sps_len, uint8_t * pps, int pps_len, int * out_len)
+{
+	int extraSize = 5 + 1 + 2 + sps_len + 1 + 2 + pps_len;
+	uint8_t * extraBuffer = (uint8_t*)av_malloc(extraSize);
+	memset(extraBuffer, 0, extraSize);
+	uint8_t * extra = extraBuffer;
+	extra[0] = 0x01;
+	extra[1] = sps[1];
+	extra[2] = sps[2];
+	extra[3] = sps[3];
+	extra[4] = 0xFF;
+	extra[5] = 0xE1;
+	extra[6] = sps_len >> 8;
+	extra[7] = sps_len & 0xFF;
+	memcpy(extra + 8, sps, sps_len);
+	extra += 8 + sps_len;
+	extra[0] = 0x01;
+	extra[1] = pps_len >> 8;
+	extra[2] = pps_len & 0xFF;
+	memcpy(extra + 3, pps, pps_len);
+
+	if (out_len != NULL) *out_len = extraSize;
+	return extraBuffer;
+}
+
 int MediaControl::Open(const char * file)
 {
     int ret = source.Open(file);
@@ -49,17 +74,29 @@ int MediaControl::Open(const char * file)
 				return -1;
 			}
 			codecContext = avcodec_alloc_context3(codec);
-			//codecContext->bit_rate = 4000000;
-			/*uint8_t extData[64];
-			int size = source.GetExtData(extData, 64);
+
+			uint8_t extData[128];
+			int size = source.GetExtData(extData, 128);
+			uint8_t sps[128];
+			int sps_size = source.GetSPS(sps, 128);
+			uint8_t pps[128];
+			int pps_size = source.GetPPS(pps, 128);
+			int out_size = 0;
+			uint8_t *  extraData = MakeExtraData(sps + 4, sps_size - 4, pps + 4, pps_size - 4, &out_size);
+			if (memcmp(extraData, extData, out_size) == 0)
+			{
+
+			}
+			if (extraData != NULL)av_free(extraData); extraData = NULL;
 			codecContext->extradata = extData;
-			codecContext->extradata_size = size;*/
+			codecContext->extradata_size = size;
+			codecContext->width = source.GetWidth();
+			codecContext->height = source.GetHeight();
+			codecContext->coded_width = source.GetWidth();
+			codecContext->coded_height = source.GetHeight();
+
 			/*codecContext->time_base = {1,60};
 			codecContext->delay = 4;
-			codecContext->width = 3040;
-			codecContext->height = 1520;
-			codecContext->coded_width = 3040;
-			codecContext->coded_height = 1520;
 			codecContext->request_sample_fmt = AV_SAMPLE_FMT_NONE;*/
 			/*codecContext->min_prediction_order = -1;
 			codecContext->max_prediction_order = -1;
