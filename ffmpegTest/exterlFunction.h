@@ -63,9 +63,11 @@ inline int resetPacket(AVPacket * packet, AVPacket * pkt)
 
 inline int decodeVideo(AVCodecContext * context, AVPacket * packet, AVFrame * frame)
 {
-#ifdef NEW_API
+#ifdef USE_NEW_API
 	int ret = avcodec_send_packet(context, packet);
 	if (ret == 0)ret = avcodec_receive_frame(context, frame);
+	int got_picture_ptr = 0;
+	if (ret == 0) got_picture_ptr = 1;
 #else
 	int got_picture_ptr = 0;
 	int ret = avcodec_decode_video2(context, frame, &got_picture_ptr, packet);
@@ -95,7 +97,7 @@ inline int getVideoId(AVFormatContext * formatContext)
 	int videoIndex = -1;
 	for (size_t i = 0; i < formatContext->nb_streams; i++)
 	{
-#ifdef NEW_API
+#ifdef USE_NEW_API
 		if (formatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
 #else
 		if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
@@ -110,8 +112,8 @@ inline int getVideoId(AVFormatContext * formatContext)
 
 inline AVCodecContext * openCodec(AVStream * stream)
 {
-#ifdef NEW_API
-	AVCodecParameters * paramter = formatContext->streams[videoIndex]->codecpar;
+#ifdef USE_NEW_API
+	AVCodecParameters * paramter = stream->codecpar;
 
 	AVCodec * codec = avcodec_find_decoder(paramter->codec_id);
 
@@ -132,7 +134,7 @@ inline AVCodecContext * openCodec(AVStream * stream)
 	return codecContext;
 }
 
-#ifndef NEW_API
+#ifndef USE_NEW_API
 inline inline AVPacket * av_packet_alloc()
 {
 	AVPacket * packet = (AVPacket*)av_malloc(sizeof(AVPacket));

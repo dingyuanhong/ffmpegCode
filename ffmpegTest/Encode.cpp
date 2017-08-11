@@ -26,6 +26,15 @@
 
 #include "Encode.h"
 
+#ifdef USE_NEW_API
+static AVCodecContext *CreateCodecContent(AVCodecParameters *codecpar)
+{
+	AVCodecContext *codecContext = avcodec_alloc_context3(NULL);
+	avcodec_parameters_to_context(codecContext, codecpar);
+	return codecContext;
+}
+#endif
+
 Encode::Encode()
 {
 	formatCtx_ = NULL;
@@ -71,9 +80,12 @@ int Encode::NewVideoStream(int width,int height, AVPixelFormat format,int frameR
 	videoStream_->time_base.num = 1;
 	videoStream_->time_base.den = frameRate;
 
+#ifdef USE_NEW_API
+	videoCodecCtx_ = CreateCodecContent(videoStream_->codecpar);
+#else
 	//Param that must set  
 	videoCodecCtx_ = videoStream_->codec;
-
+#endif
 	//videoCodecCtx_->codec_id =AV_CODEC_ID_HEVC;  
 	videoCodecCtx_->codec_id = output_->video_codec;
 	videoCodecCtx_->codec_type = AVMEDIA_TYPE_VIDEO;
@@ -157,13 +169,19 @@ int Encode::WriteTrailer()
 
 void Encode::Close()
 {
-	if (videoStream_) {
-		avcodec_close(videoStream_->codec);
-		//avcodec_free_context(&videoStream_->codec);
+	if (videoCodecCtx_) {
+		avcodec_close(videoCodecCtx_);
+#ifdef USE_NEW_API
+		avcodec_free_context(&videoCodecCtx_);
+#endif
+		videoCodecCtx_ = NULL;
 	}
-	if (audioStream_) {
-		avcodec_close(audioStream_->codec);
-		//avcodec_free_context(&audioStream_->codec);
+	if (audioCodecCtx_) {
+		avcodec_close(audioCodecCtx_);
+#ifdef USE_NEW_API
+		avcodec_free_context(&audioCodecCtx_);
+#endif
+		audioCodecCtx_ = NULL;
 	}
 	if (formatCtx_) {
 		avio_closep(&formatCtx_->pb);
@@ -190,9 +208,17 @@ int OriginalEncode::EncodeAudio(AVFrame* frame)
 	av_init_packet(&audioPacket_);
 	audioPacket_.data = NULL;
 	audioPacket_.size = 0;
-	int ret = avcodec_encode_audio2(audioStream_->codec, &audioPacket_,
+#ifdef USE_NEW_API
+	int ret = avcodec_send_frame(audioCodecCtx_, frame);
+	if (ret == 0) ret = avcodec_receive_packet(audioCodecCtx_, &audioPacket_);
+	if (ret == 0)
+	{
+		got_picture = 1;
+	}
+#else
+	int ret = avcodec_encode_audio2(audioCodecCtx_, &audioPacket_,
 		frame, &got_picture);
-
+#endif
 	if (ret < 0) {
 		printf("Failed to encode! \n");
 		return -1;
@@ -200,7 +226,11 @@ int OriginalEncode::EncodeAudio(AVFrame* frame)
 	if (got_picture == 1) {
 		printf("Succeed to encode frame size:%5d\n", audioPacket_.size);
 		ret = WriteAudio(&audioPacket_);
+#ifdef USE_NEW_API
+		av_packet_unref(&audioPacket_);
+#else
 		av_free_packet(&audioPacket_);
+#endif
 		return 0;
 	}
 	return -1;
@@ -212,9 +242,17 @@ int OriginalEncode::EncodeVideo(AVFrame* frame)
 	av_init_packet(&videoPacket_);
 	videoPacket_.data = NULL;
 	videoPacket_.size = 0;
-	int ret = avcodec_encode_video2(videoStream_->codec, &videoPacket_,
+#ifdef USE_NEW_API
+	int ret = avcodec_send_frame(videoCodecCtx_, frame);
+	if (ret == 0) ret = avcodec_receive_packet(videoCodecCtx_, &videoPacket_);
+	if (ret == 0)
+	{
+		got_picture = 1;
+	}
+#else
+	int ret = avcodec_encode_video2(videoCodecCtx_, &videoPacket_,
 		frame, &got_picture);
-
+#endif
 	if (ret < 0) {
 		printf("Failed to encode! \n");
 		return -1;
@@ -222,7 +260,11 @@ int OriginalEncode::EncodeVideo(AVFrame* frame)
 	if (got_picture == 1) {
 		printf("Succeed to encode frame size:%5d\n", videoPacket_.size);
 		ret = WriteVideo(&videoPacket_);
+#ifdef USE_NEW_API
+		av_packet_unref(&videoPacket_);
+#else
 		av_free_packet(&videoPacket_);
+#endif
 		return 1;
 	}
 	else
@@ -238,15 +280,23 @@ int OriginalEncode::FlushAudio()
 	int ret;
 	int got_frame;
 	AVPacket enc_pkt;
-	if (!(audioStream_->codec->codec->capabilities &
+	if (!(audioCodecCtx_->codec->capabilities &
 		CODEC_CAP_DELAY))
 		return 0;
 	while (1) {
 		enc_pkt.data = NULL;
 		enc_pkt.size = 0;
 		av_init_packet(&enc_pkt);
-		ret = avcodec_encode_audio2(audioStream_->codec, &enc_pkt,
+#ifdef USE_NEW_API
+		ret = avcodec_receive_packet(audioCodecCtx_, &enc_pkt);
+		if (ret == 0)
+		{
+			got_frame = 1;
+		}
+#else
+		ret = avcodec_encode_audio2(audioCodecCtx_, &enc_pkt,
 			NULL, &got_frame);
+#endif
 		av_frame_free(NULL);
 		if (ret < 0)
 			break;
@@ -265,18 +315,26 @@ int OriginalEncode::FlushAudio()
 
 int OriginalEncode::FlushVideo()
 {
-	int ret;
+	int ret = 0;
 	int got_frame;
 	AVPacket enc_pkt;
-	if (!(videoStream_->codec->codec->capabilities &
+	if (!(videoCodecCtx_->codec->capabilities &
 		CODEC_CAP_DELAY))
 		return 0;
 	while (1) {
 		enc_pkt.data = NULL;
 		enc_pkt.size = 0;
 		av_init_packet(&enc_pkt);
-		ret = avcodec_encode_video2(videoStream_->codec, &enc_pkt,
+#ifdef USE_NEW_API
+		ret = avcodec_receive_packet(videoCodecCtx_, &enc_pkt);
+		if (ret == 0)
+		{
+			got_frame = 1;
+		}
+#else
+		ret = avcodec_encode_video2(videoCodecCtx_, &enc_pkt,
 			NULL, &got_frame);
+#endif
 		av_frame_free(NULL);
 		if (ret < 0)
 			break;
@@ -298,7 +356,17 @@ AVStream* OriginalEncode::GetVideoStream()
 	return videoStream_;
 }
 
+AVCodecContext* OriginalEncode::GetVideoContext()
+{
+	return videoCodecCtx_;
+}
+
 AVStream* OriginalEncode::GetAudioStream()
 {
 	return audioStream_;
+}
+
+AVCodecContext* OriginalEncode::GetAudioContext()
+{
+	return audioCodecCtx_;
 }

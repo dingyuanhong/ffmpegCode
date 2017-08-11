@@ -82,19 +82,20 @@ int MediaControl::Open(const char * file)
 		}
 		else {
 			AVStream * stream = source.GetVideoStream();
-			if (stream == NULL) return -1;
-			AVCodec *codec = (AVCodec*)stream->codec->codec;
-			if (codec == NULL) codec = avcodec_find_decoder(stream->codec->codec_id);
+			AVCodecContext *Context = source.GetCodecContext();
+			if (Context == NULL) return -1;
+			AVCodec *codec = (AVCodec*)Context->codec;
+			if (codec == NULL) codec = avcodec_find_decoder(Context->codec_id);
 			if (codec == NULL) {
 				source.Close();
 				return -1;
 			}
-			if (avcodec_open2(stream->codec, codec, NULL) < 0)
+			if (avcodec_open2(Context, codec, NULL) < 0)
 			{
 				source.Close();
 				return -1;
 			}
-			decoder = new VideoDecoder(stream->codec);
+			decoder = new VideoDecoder(Context);
 		}
     }
     return ret;

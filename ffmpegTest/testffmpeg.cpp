@@ -80,7 +80,7 @@ inline int testFFmpeg(const char * file)
 	av_packet_free(&pkt);
 
 	avcodec_close(codecContext);
-#ifdef NEW_API
+#ifdef USE_NEW_API
 	avcodec_free_context(&codecContext);
 #endif
 	avformat_close_input(&formatContext);

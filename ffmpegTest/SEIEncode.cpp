@@ -45,9 +45,17 @@ int SEIEncode::EncodeVideo(AVFrame* frame)
 	av_init_packet(&videoPacket_);
 	videoPacket_.data = NULL;
 	videoPacket_.size = 0;
-	int ret = avcodec_encode_video2(videoStream_->codec, &videoPacket_,
+#ifdef USE_NEW_API
+	int ret = avcodec_send_frame(videoCodecCtx_, frame);
+	if(ret == 0) ret = avcodec_receive_packet(videoCodecCtx_,&videoPacket_);
+	if (ret == 0)
+	{
+		got_picture = 1;
+	}
+#else
+	int ret = avcodec_encode_video2(videoCodecCtx_, &videoPacket_,
 		frame, &got_picture);
-
+#endif
 	if (ret < 0) {
 		printf("Failed to encode! \n");
 		return -1;
@@ -58,11 +66,19 @@ int SEIEncode::EncodeVideo(AVFrame* frame)
 		av_init_packet(pkt);
 
 		resetPacket(&videoPacket_, pkt);
-		ret = WriteVideo(pkt);
+		//ret = WriteVideo(pkt);
+		ret = WriteVideo(&videoPacket_);
+#ifdef USE_NEW_API
+		av_packet_unref(pkt);
+#else
 		av_free_packet(pkt);
+#endif
 		av_free(pkt);
-
+#ifdef USE_NEW_API
+		av_packet_unref(&videoPacket_);
+#else
 		av_free_packet(&videoPacket_);
+#endif
 		return 1;
 	}
 	else
@@ -78,16 +94,23 @@ int SEIEncode::FlushVideo()
 	int ret;
 	int got_frame;
 	AVPacket enc_pkt;
-	if (!(videoStream_->codec->codec->capabilities &
+	if (!(videoCodecCtx_->codec->capabilities &
 		CODEC_CAP_DELAY))
 		return 0;
 	while (1) {
 		enc_pkt.data = NULL;
 		enc_pkt.size = 0;
 		av_init_packet(&enc_pkt);
-		ret = avcodec_encode_video2(videoStream_->codec, &enc_pkt,
+#ifdef USE_NEW_API
+		ret = avcodec_receive_packet(videoCodecCtx_, &enc_pkt);
+		if (ret == 0)
+		{
+			got_frame = 1;
+		}
+#else
+		ret = avcodec_encode_video2(videoCodecCtx_, &enc_pkt,
 			NULL, &got_frame);
-		av_frame_free(NULL);
+#endif
 		if (ret < 0)
 			break;
 		if (!got_frame) {
@@ -102,8 +125,11 @@ int SEIEncode::FlushVideo()
 		resetPacket(&enc_pkt, pkt);
 
 		ret = WriteVideo(pkt);
-
+#ifdef USE_NEW_API
+		av_packet_unref(pkt);
+#else
 		av_free_packet(pkt);
+#endif
 		av_free(pkt);
 
 		if (ret < 0)

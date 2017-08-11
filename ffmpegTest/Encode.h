@@ -40,6 +40,9 @@ public:
 
 	AVStream* GetVideoStream();
 	AVStream* GetAudioStream();
+
+	AVCodecContext* GetVideoContext();
+	AVCodecContext* GetAudioContext();
 protected:
 	AVPacket videoPacket_;
 	AVPacket audioPacket_;

@@ -5,6 +5,31 @@
 #include "Encode.h"
 #include "SEIEncode.h"
 
+inline unsigned int GetPictureSize(AVPixelFormat Format,int Width,int Height)
+{
+#ifdef USE_NEW_API
+	unsigned int dstSize = av_image_get_buffer_size(Format,
+		Width,
+		Height,
+		1);
+#else
+	unsigned int dstSize = avpicture_get_size(
+		Format,
+		Width,
+		Height);
+#endif
+	return dstSize;
+}
+
+#ifdef USE_NEW_API
+static AVCodecContext *CreateCodecContent(AVCodecParameters *codecpar)
+{
+	AVCodecContext *codecContext = avcodec_alloc_context3(NULL);
+	avcodec_parameters_to_context(codecContext, codecpar);
+	return codecContext;
+}
+#endif
+
 //file = "../1.mp4"
 inline int testEncode(const char * file)
 {
@@ -30,12 +55,16 @@ inline int testEncode(const char * file)
 	int framenum = 100;                                   //Frames to encode  
 
 	AVStream * stream = encode.GetVideoStream();
-	AVCodecContext * codecContext = encode.GetVideoStream()->codec;
+	AVCodecContext * codecContext = encode.GetVideoContext();
 
 	AVFrame * frame = av_frame_alloc();
-	int picture_size = avpicture_get_size(codecContext->pix_fmt, codecContext->width, codecContext->height);
+	int picture_size = GetPictureSize(codecContext->pix_fmt, codecContext->width, codecContext->height);
 	uint8_t * picture_buf = (uint8_t *)av_malloc(picture_size);
+#ifdef USE_NEW_API
+	av_image_fill_arrays(frame->data,frame->linesize, picture_buf, codecContext->pix_fmt, codecContext->width, codecContext->height,1);
+#else
 	avpicture_fill((AVPicture *)frame, picture_buf, codecContext->pix_fmt, codecContext->width, codecContext->height);
+#endif
 	int y_size = codecContext->width * codecContext->height;
 
 	for (int i = 0; i < framenum; i++)
