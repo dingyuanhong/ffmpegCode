@@ -57,18 +57,18 @@ public:
 	//¸ß
 	int GetHeight();
 	AVStream * GetVideoStream();
+	AVCodecContext * GetCodecContext();
 	void SetVideoCodecName(const char * codec);
+	AVCodec *GetBestDecoder(std::string name, AVMediaType codecType, AVCodecID id);
 private:
 	void ChangeAnnexb(EvoFrame * frame);
 	int AnalysisVideoPPSSPS();
-	AVCodec *GetBestVideoDecoder(enum AVMediaType codecType, AVCodecID id);
-	int64_t GetAudioTimeStamp(AVRational time_base, int64_t pts, int nb_samples, int SampleRate);
 private:
 	AVFormatContext * context_;
 	AVPacket * packet_;
 	int videoIndex_;
 	AVStream *videoStream_;
-	AVBitStreamFilterContext* filter;
+	AVCodecContext *codecContext_;
 	uint8_t * pps_data_;
 	int pps_size_;
 	uint8_t * sps_data_;

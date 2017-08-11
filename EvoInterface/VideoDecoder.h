@@ -11,9 +11,9 @@ typedef struct EvoPacket
 	int64_t dts;
 	int64_t timestamp;
 	int flags;
-	int size;
-	uint8_t *data;
-}EvoPacket;
+	int32_t size;
+	uint8_t * data;
+ }EvoPacket;
 
 void FreeAVFrame(AVFrame **out);
 
@@ -34,7 +34,10 @@ public:
 	{
 		KeepIFrame = keep;
 	}
-private:
+protected:
+	virtual int CreateFrame(AVFrame *out,int Width, int Height, AVPixelFormat Format);
+	virtual void FreeFrame(AVFrame **out);
+protected:
 	AVCodecContext	*VideoCodecCtx;
 	AVFrame         *VideoFrame;
 	bool			KeepIFrame;

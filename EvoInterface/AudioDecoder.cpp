@@ -101,7 +101,7 @@ int AudioDecoder::DecodePacket(AVPacket *packet, AVFrame **evoResult)
 	{
 		*evoResult = NULL;
 	}
-#ifndef USE_NEW_DECODER
+#ifndef USE_NEW_API
 	if (packet == NULL) {
 		return 0;
 	}
@@ -161,7 +161,9 @@ int AudioDecoder::DecodePacket(AVPacket *packet, AVFrame **evoResult)
 			
 			int ret = this->AudioResampling(this->AudioFrame, frame->data[0], frame->pkt_size);
 			frame->pts = this->AudioFrame->pts;
+#ifndef USE_NEW_API
 			frame->pkt_pts = this->AudioFrame->pkt_pts;
+#endif
 			frame->pkt_dts = this->AudioFrame->pkt_dts;
 			/*frame->nb_samples = this->AudioFrame->nb_samples;
 			frame->channels = this->AudioFrame->channels;
@@ -170,10 +172,15 @@ int AudioDecoder::DecodePacket(AVPacket *packet, AVFrame **evoResult)
 			frame->sample_rate = this->AudioCodecCtx->sample_rate;*/
 
 			int64_t pts = frame->pts == AV_NOPTS_VALUE? 
+#ifndef USE_NEW_API
 				frame->pkt_pts == AV_NOPTS_VALUE ?
-				frame ->pkt_dts == AV_NOPTS_VALUE ? AV_NOPTS_VALUE 
+#endif
+				frame ->pkt_dts == AV_NOPTS_VALUE ? 
+				AV_NOPTS_VALUE 
 				: frame->pkt_dts
+#ifndef USE_NEW_API
 				: frame->pkt_pts
+#endif
 				: frame->pts ;
 			int64_t timeStamp = GetAudioTimeStamp(AudioCodecCtx->time_base, pts, frame->nb_samples,frame->sample_rate);
 
@@ -200,7 +207,7 @@ int AudioDecoder::DecodePacket(AVPacket *packet, AVFrame **evoResult)
 AVFrame* AudioDecoder::Decode(AVPacket *packet)
 {
 	int gotFrame = 0;
-#ifndef USE_NEW_DECODER
+#ifndef USE_NEW_API
 	if (packet == NULL) {
 		return NULL;
 	}
@@ -248,7 +255,9 @@ AVFrame* AudioDecoder::Decode(AVPacket *packet)
 			int ret = this->AudioResampling(this->AudioFrame, frame->data[0], frame->pkt_size);
 
 			frame->pts = this->AudioFrame->pts;
+#ifndef USE_NEW_API
 			frame->pkt_pts = this->AudioFrame->pkt_pts;
+#endif
 			frame->pkt_dts = this->AudioFrame->pkt_dts;
 			/*frame->nb_samples = this->AudioFrame->nb_samples;
 			frame->channels = this->AudioFrame->channels;

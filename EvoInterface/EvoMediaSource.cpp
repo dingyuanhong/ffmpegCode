@@ -30,19 +30,26 @@ void EvoFreeFrame(EvoFrame ** frame)
 	}
 }
 
+#ifdef USE_NEW_API
+static AVCodecContext *CreateCodecContent(AVCodecParameters *codecpar)
+{
+	AVCodecContext *codecContext = avcodec_alloc_context3(NULL);
+	avcodec_parameters_to_context(codecContext, codecpar);
+	return codecContext;
+}
+#endif
+
 EvoMediaSource::EvoMediaSource()
 	:context_(NULL),
 	packet_(NULL),
 	videoIndex_(-1),
 	videoStream_(NULL),
-	filter(NULL),
+	codecContext_(NULL),
 	pps_data_(NULL),
 	pps_size_(0),
 	sps_data_(NULL),
 	sps_size_(0)
 {
-	Config_.UseAnnexb = false;
-	Config_.UseSei = false;
 }
 
 EvoMediaSource::~EvoMediaSource()
@@ -53,12 +60,11 @@ EvoMediaSource::~EvoMediaSource()
 int EvoMediaSource::Open(const char * file, EvoMediaSourceConfig *config, enum AVMediaType codecType)
 {
 	av_register_all();
-	filter = av_bitstream_filter_init("h264_mp4toannexb");
 
 	context_ = avformat_alloc_context();
 
 	AVDictionary* options = NULL;
-	//µ÷ÕûÌ½²âÍ·±ÜÃâ¹ý³¤µÄµÈ´ý
+	//ï¿½ï¿½ï¿½ï¿½Ì½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÄµÈ´ï¿½
 	av_dict_set(&options, "max_analyze_duration", "100", 0);
 	av_dict_set(&options, "probesize", "1024", 0);
 	int ret = avformat_open_input(&context_,file,NULL, &options);
@@ -72,21 +78,26 @@ int EvoMediaSource::Open(const char * file, EvoMediaSourceConfig *config, enum A
 		return ret;
 	}
 
+#ifndef USE_NEW_API
 	for (size_t i = 0; i < context_->nb_streams; i++)
 	{
 		if (context_->streams[i]->codec->codec_type == codecType)
 		{
 			videoStream_ = context_->streams[i];
-			AVCodec * codec = GetBestVideoDecoder(codecType,videoStream_->codec->codec_id);
+			AVCodec * codec = GetBestDecoder(VideoDecoderName, videoStream_->codec->codec_type,videoStream_->codec->codec_id);
+			if (codec == NULL) codec = avcodec_find_decoder(videoStream_->codec->codec_id);
 			if (codec != NULL)
 			{
 				videoStream_->codec->codec = codec;
 			}
 		}
 	}
+#endif
 
 	context_->probesize = 1024;
-	//context_->max_analyze_duration = 5 * AV_TIME_BASE;
+#ifndef USE_NEW_API
+	context_->max_analyze_duration = 5 * AV_TIME_BASE;
+#endif
 	if (avformat_find_stream_info(context_, NULL))
 	{
 		if (context_ != NULL)
@@ -100,20 +111,45 @@ int EvoMediaSource::Open(const char * file, EvoMediaSourceConfig *config, enum A
 	videoIndex_ = -1;
 	for (size_t i = 0; i < context_->nb_streams; i++)
 	{
+#ifdef USE_NEW_API
+		if (context_->streams[i]->codecpar->codec_type == codecType)
+		{
+			videoIndex_ = (int)i;
+			videoStream_ = context_->streams[i];
+			codecContext_ = CreateCodecContent(videoStream_->codecpar);
+			AVCodec * codec = GetBestDecoder(VideoDecoderName, codecContext_->codec_type, codecContext_->codec_id);
+			if (codec == NULL) codec = avcodec_find_decoder(codecContext_->codec_id);
+			if (codec != NULL)
+			{
+				codecContext_->codec = codec;
+			}
+			if (videoStream_ != NULL && codecContext_ != NULL && codecContext_->codec != NULL)
+			{
+				printf("EvoMediaSource DECODE:%s\n", codecContext_->codec->name);
+			}
+		}
+#else
 		if (context_->streams[i]->codec->codec_type == codecType)
 		{
 			videoIndex_ = (int)i;
 			videoStream_ = context_->streams[i];
-			if (videoStream_ != NULL && videoStream_->codec != NULL && videoStream_->codec->codec != NULL)
+			codecContext_ = videoStream_->codec;
+			AVCodec * codec = GetBestDecoder(VideoDecoderName, codecContext_->codec_type, codecContext_->codec_id);
+			if (codec == NULL) codec = avcodec_find_decoder(codecContext_->codec_id);
+			if (codec != NULL)
 			{
-				printf("EvoMediaSource DECODE:%s\n", videoStream_->codec->codec->name);
+				codecContext_->codec = codec;
+			}
+			if (videoStream_ != NULL && codecContext_ != NULL && codecContext_->codec != NULL)
+			{
+				printf("EvoMediaSource DECODE:%s\n", codecContext_->codec->name);
 			}
 		}
+#endif
 	}
 	
 	if (videoIndex_ == -1 || 
-		(AV_CODEC_ID_H264 != videoStream_->codec->codec_id && codecType == AVMEDIA_TYPE_VIDEO)
-	)
+		(codecType == AVMEDIA_TYPE_VIDEO && AV_CODEC_ID_H264 != codecContext_->codec_id))
 	{
 		if (context_ != NULL) 
 		{
@@ -149,19 +185,26 @@ void EvoMediaSource::Close()
 	}
 	if (packet_ != NULL)
 	{
+#ifdef USE_NEW_API
+		av_packet_unref(packet_);
+#else
 		av_free_packet(packet_);
+#endif
 		av_freep(packet_);
+	}
+	if (codecContext_ != NULL)
+	{
+		avcodec_close(this->codecContext_);
+#ifdef USE_NEW_API
+		avcodec_free_context(&codecContext_);
+#endif
+		this->codecContext_ = NULL;
 	}
 	context_ = NULL;
 	packet_ = NULL;
 	videoIndex_ = -1;
 	videoStream_ = NULL;
 
-	if (filter != NULL) 
-	{
-		av_bitstream_filter_close(filter);
-		filter = NULL;
-	}
 	if (pps_data_ != NULL)
 	{
 		av_free(pps_data_);
@@ -188,7 +231,7 @@ int EvoMediaSource::Seek(int64_t millisecond)
 		millisecond = duration;
 	}
 	int64_t timeStamp = millisecond * 1000;
-	int ret = av_seek_frame(context_, -1, timeStamp, AVSEEK_FLAG_BACKWARD);
+	int ret = av_seek_frame(context_,-1, timeStamp, AVSEEK_FLAG_BACKWARD);
 	if (ret >= 0)
 	{
 		avformat_flush(this->context_);
@@ -200,8 +243,6 @@ int EvoMediaSource::Seek(int64_t millisecond)
 int EvoMediaSource::ReadFrame(EvoFrame** out)
 {
 	if (context_ == NULL) return -1;
-	if (videoStream_ == NULL) return -1;
-
 	bool getPacket = false;
 	do {
 		int ret = av_read_frame(context_, packet_);
@@ -209,12 +250,11 @@ int EvoMediaSource::ReadFrame(EvoFrame** out)
 		{
 			if (packet_->stream_index == videoIndex_)
 			{
-				if (videoStream_->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+				if (codecContext_->codec_type == AVMEDIA_TYPE_VIDEO)
 				{
-					//¶ÁÈ¡³É¹¦
+					//è¯»å–æˆåŠŸ
 					if (out != NULL)
 					{
-						//av_bitstream_filter_filter(filter, videoStream_->codec, NULL, &packet_->data, &packet_->size, packet_->data, packet_->size, 0);
 						int64_t timestamp = (packet_->pts != AV_NOPTS_VALUE) ? (packet_->pts * av_q2d(videoStream_->time_base) * 1000) :
 							(packet_->dts != AV_NOPTS_VALUE) ? (packet_->dts * av_q2d(videoStream_->time_base) * 1000) : NAN;
 
@@ -240,7 +280,7 @@ int EvoMediaSource::ReadFrame(EvoFrame** out)
 						bool annexb = IsAnnexb(packet_->data,packet_->size);
 
 						if (Config_.UseSei) {
-							//Ìî³äseiÐÅÏ¢
+							//å¡«å……seiä¿¡æ¯
 							fill_sei_packet(frame->data + packet_->size, annexb, sei_buf, len);
 						}
 						if (!annexb && Config_.UseAnnexb)
@@ -252,9 +292,9 @@ int EvoMediaSource::ReadFrame(EvoFrame** out)
 						getPacket = true;
 					}
 				}
-				else if (videoStream_->codec->codec_type == AVMEDIA_TYPE_AUDIO)
+				else if (codecContext_->codec_type == AVMEDIA_TYPE_AUDIO)
 				{
-					//¶ÁÈ¡³É¹¦
+					//è¯»å–æˆåŠŸ
 					if (out != NULL)
 					{
 						int64_t timestamp = (packet_->pts != AV_NOPTS_VALUE) ? (packet_->pts * av_q2d(videoStream_->time_base) * 1000) :
@@ -285,7 +325,7 @@ int EvoMediaSource::ReadFrame(EvoFrame** out)
 		}
 		if (ret == AVERROR_EOF)
 		{
-			//ÎÄ¼þ½áÊø
+			//æ–‡ä»¶ç»“æŸ
 			return ret;
 		}
 	} while (true);
@@ -308,20 +348,19 @@ void EvoMediaSource::ChangeAnnexb(EvoFrame * frame)
 
 int EvoMediaSource::GetExtData(uint8_t * data, int size)
 {
-	if (videoStream_ == NULL) return 0;
-	if (videoStream_->codec == NULL) return 0;
+	if (codecContext_ == NULL) return 0;
 
 	if (data == NULL)
 	{
-		return videoStream_->codec->extradata_size;
+		return codecContext_->extradata_size;
 	}
-	if (size < videoStream_->codec->extradata_size)
+	if (size < codecContext_->extradata_size)
 	{
-		return videoStream_->codec->extradata_size;
+		return codecContext_->extradata_size;
 	}
-	memcpy(data, videoStream_->codec->extradata, videoStream_->codec->extradata_size);
+	memcpy(data, codecContext_->extradata, codecContext_->extradata_size);
 	
-	return videoStream_->codec->extradata_size;
+	return codecContext_->extradata_size;
 }
 
 //PPS
@@ -361,25 +400,23 @@ int EvoMediaSource::GetFrameRate()
 int EvoMediaSource::GetFrameCount()
 {
 	if (videoStream_ == NULL) return 0;
-	return videoStream_->nb_frames;
+	return (int)videoStream_->nb_frames;
 }
 
-//¿í
+//ï¿½ï¿½
 int EvoMediaSource::GetWidth()
 {
-	if (videoStream_ == NULL) return 0;
-	if (videoStream_->codec == NULL) return 0;
-	return videoStream_->codec->width > 0 ?
-		videoStream_->codec->width : videoStream_->codec->coded_width;
+	if (codecContext_ == NULL) return 0;
+	return codecContext_->width > 0 ?
+		codecContext_->width : codecContext_->coded_width;
 }
 
-//¸ß
+//ï¿½ï¿½
 int EvoMediaSource::GetHeight()
 {
-	if (videoStream_ == NULL) return 0;
-	if (videoStream_->codec == NULL) return 0;
-	return videoStream_->codec->height > 0 ?
-		videoStream_->codec->height : videoStream_->codec->coded_height;
+	if (codecContext_ == NULL) return 0;
+	return codecContext_->height > 0 ?
+		codecContext_->height : codecContext_->coded_height;
 }
 
 AVStream * EvoMediaSource::GetVideoStream()
@@ -387,13 +424,17 @@ AVStream * EvoMediaSource::GetVideoStream()
 	return videoStream_;
 }
 
+AVCodecContext * EvoMediaSource::GetCodecContext()
+{
+	return codecContext_;
+}
+
 int EvoMediaSource::AnalysisVideoPPSSPS()
 {
-	if (videoStream_ == NULL) return -1;
-	if (videoStream_->codec == NULL) return -1;
+	if (codecContext_ == NULL) return -1;
 
-	int extradata_size = videoStream_->codec->extradata_size;
-	uint8_t * extradata = videoStream_->codec->extradata;
+	int extradata_size = codecContext_->extradata_size;
+	uint8_t * extradata = codecContext_->extradata;
 
 	/* retrieve sps and pps NAL units from extradata */
 	{
@@ -401,10 +442,10 @@ int EvoMediaSource::AnalysisVideoPPSSPS()
 		uint64_t total_size = 0;
 		uint8_t unit_nb, sps_done = 0, sps_seen = 0, pps_seen = 0;
 		int unit_type = 0;
-		extradata = extradata + 4;  //Ìø¹ýÇ°4¸ö×Ö½Ú  
+		extradata = extradata + 4;  //ï¿½ï¿½ï¿½ï¿½Ç°4ï¿½ï¿½ï¿½Ö½ï¿½  
 
 		/* retrieve length coded size */
-		int length_size = (*extradata++ & 0x3) + 1;    //ÓÃÓÚÖ¸Ê¾±íÊ¾±àÂëÊý¾Ý³¤¶ÈËùÐè×Ö½ÚÊý  
+		int length_size = (*extradata++ & 0x3) + 1;    //ï¿½ï¿½ï¿½ï¿½Ö¸Ê¾ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½  
 		if (length_size == 3)
 			return AVERROR(EINVAL);
 
@@ -481,20 +522,19 @@ int EvoMediaSource::AnalysisVideoPPSSPS()
 	return 0;
 }
 
-AVCodec *EvoMediaSource::GetBestVideoDecoder(enum AVMediaType codecType,AVCodecID id) {
-	if (VideoDecoderName.length() == 0) return NULL;
+AVCodec *EvoMediaSource::GetBestDecoder(std::string name, AVMediaType codecType,AVCodecID id) 
+{
 	
 	AVCodec *c_temp = av_codec_next(NULL);
 	while (c_temp != NULL) {
 		if (c_temp->id == id && c_temp->type == codecType
 			&& c_temp->decode != NULL)
 		{
-			printf("Video H264 decode:%s\n",c_temp->name);
+			printf("Decode Name:%s\n",c_temp->name);
 		}
 		c_temp = c_temp->next;
 	}
 
-	std::string name = VideoDecoderName;
 	std::string decoder;
 	while (true) {
 		size_t pos = name.find(" ");

@@ -36,7 +36,11 @@ VideoDecoder::~VideoDecoder()
 	}
 	if (this->Packet != NULL)
 	{
+#ifdef USE_NEW_API
+		av_packet_unref(this->Packet);
+#else
 		av_free_packet(this->Packet);
+#endif
 		av_free(this->Packet);
 		this->Packet = NULL;
 	}
@@ -56,49 +60,51 @@ EvoVideoConvert *VideoDecoder::Detach()
 
 int VideoDecoder::DecodeFrame(EvoFrame *packet, AVFrame **evoResult)
 {
-	if (packet == NULL || packet->size == 0)
-	{
-		return Decode(NULL,evoResult);
-	}
-	else 
-	{
-		int ret = av_new_packet(this->Packet, packet->size);
+    int ret = 0;
+    if(packet != NULL)
+    {
+        ret = av_new_packet(this->Packet, packet->size);
 
-		if (ret == 0) {
-			memcpy(this->Packet->data, packet->data, packet->size);
-			Packet->pts = packet->pts;
-			Packet->dts = packet->dts;
+        if (ret == 0) {
+            memcpy(this->Packet->data, packet->data, packet->size);
+            Packet->pts = packet->pts;
+            Packet->dts = packet->dts;
 			Packet->pos = packet->timestamp;
-			Packet->flags = packet->flags;
-			ret = Decode(Packet, evoResult);
-		}
+            Packet->flags = packet->flags;
+            ret = Decode(Packet, evoResult);
+        }
+        av_packet_unref(this->Packet);
+    } else{
+        ret = Decode((AVPacket *)NULL, evoResult);
+    }
 
-		av_packet_unref(this->Packet);
-		return ret;
-	}
+	return ret;
 }
 
 int VideoDecoder::DecodePacket(EvoPacket *packet, AVFrame **evoResult)
 {
-	if (packet == NULL || packet->size == 0)
-	{
-		return Decode(NULL, evoResult);
-	}
-	else
-	{
-		int ret = av_new_packet(this->Packet, packet->size);
+    int ret = 0;
+    if(packet != NULL)
+    {
+        ret = av_new_packet(this->Packet, packet->size);
 
-		if (ret == 0) {
-			memcpy(this->Packet->data, packet->data, packet->size);
-			Packet->pts = packet->pts;
-			Packet->dts = packet->dts;
+        if (ret == 0) {
+            if(packet->data != NULL)
+            {
+                memcpy(this->Packet->data, packet->data, packet->size);
+            }
+            Packet->pts = packet->pts;
+            Packet->dts = packet->dts;
 			Packet->pos = packet->timestamp;
-			Packet->flags = packet->flags;
-			ret = Decode(Packet, evoResult);
-		}
-		av_packet_unref(this->Packet);
-		return ret;
-	}
+            Packet->flags = packet->flags;
+            ret = Decode(Packet, evoResult);
+        }
+
+	    av_packet_unref(this->Packet);
+    } else{
+        ret = Decode((AVPacket *)NULL, evoResult);
+    }
+	return ret;
 }
 
 int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
@@ -108,11 +114,50 @@ int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
 		*evoResult = NULL;
 	}
 
-	if (packet == NULL) {
-		return 0;
+	int gotFrame = 0;
+#ifdef USE_NEW_API
+	int decoded = 0;
+	if(packet != NULL)
+	{
+		decoded = avcodec_send_packet(this->VideoCodecCtx, packet);
+		if (decoded < 0)
+		{
+			char errbuf[1024] = { 0 };
+			av_strerror(decoded, errbuf, 1024);
+			LOGA("VideoDecoder::DecodePacket:avcodec_send_packet:%d(%s).\n", decoded, errbuf);
+
+			if (decoded == AVERROR(EAGAIN)
+				|| decoded == AVERROR_INVALIDDATA
+				)
+			{
+				//return 0;
+			}
+			else
+			{
+				if (decoded == AVERROR_EOF) return -1;
+				if (decoded == AVERROR(EINVAL)) return -1;
+				if (AVERROR(ENOMEM)) return -1;
+				return -1;
+			}
+		}
 	}
 
-	int gotFrame = 0;
+	decoded = avcodec_receive_frame(this->VideoCodecCtx, this->VideoFrame);
+	if (decoded < 0)
+	{
+		if (decoded == AVERROR(EAGAIN)) return 0;
+		char errbuf[1024] = { 0 };
+		av_strerror(decoded, errbuf, 1024);
+		LOGA("VideoDecoder::DecodePacket:avcodec_receive_frame:%d(%s).\n", decoded, errbuf);
+		if (decoded == AVERROR_EOF) return -1;
+		if (decoded == AVERROR(EINVAL)) return -1;
+		return -1;
+	}
+	else
+	{
+		gotFrame = 1;
+	}
+#else
 	int decoded = avcodec_decode_video2(this->VideoCodecCtx, VideoFrame, &gotFrame, packet);
 	if (decoded < 0) {
 		if (decoded == AVERROR(EAGAIN)) return 0;
@@ -125,6 +170,7 @@ int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
 		if (AVERROR(ENOMEM)) return -1;
 		return -1;
 	}
+#endif
 
 	if (gotFrame) {
 
@@ -141,12 +187,12 @@ int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
 				return 0;
 			}else if (VideoFrame->pict_type == AV_PICTURE_TYPE_I)
 			{
-				//±£Áô
+				//ï¿½ï¿½ï¿½ï¿½
 				KeepIFrame = false;
 			}
 			else 
 			{
-				//Ö±½Ó´¦Àíµô
+				//Ö±ï¿½Ó´ï¿½ï¿½ï¿½ï¿½
 				KeepIFrame = false;
 			}
 		}
@@ -168,14 +214,14 @@ int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
 		}
 
 		AVFrame * retData = av_frame_alloc();
-		int retSize = av_image_alloc(retData->data, retData->linesize, info.Width, info.Height, info.Format, 1);
+		int retSize = CreateFrame(retData, info.Width, info.Height, info.Format);
 
 		if (retSize <= 0)
 		{
 			LOGA("VideoDecoder::DecodePacket:EvoPacketAllocator::CreateAVFrame(%d,%d,%d)==NULL.\n"
 				, info.Width, info.Height, info.Format);
 
-			FreeAVFrame(&retData);
+			FreeFrame(&retData);
 			av_frame_unref(this->VideoFrame);
 			return -1;
 		}
@@ -188,11 +234,11 @@ int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
 			}
 			else
 			{
-				//´æ·ÅÊÓÆµÐÅÏ¢
+				//ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½Ï¢
 				desFrame->width = info.Width;
 				desFrame->height = info.Height;
 				desFrame->format = info.Format;
-				//¿½±´Êý¾Ý
+				//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 				int ret = av_frame_copy(desFrame, VideoFrame);
 				
 				if (ret < 0)
@@ -200,19 +246,20 @@ int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
 
 					LOGA("VideoDecoder::DecodePacket:EvoPacketAllocator::av_frame_copy==(%d).\n"
 						, ret);
-					FreeAVFrame(&retData);
+					FreeFrame(&retData);
 					av_frame_unref(this->VideoFrame);
 					return -1;
 				}
 			}
-			
-			desFrame->width = info.Width;
-			desFrame->height = info.Height;
-			desFrame->format = info.Format;
-
+            desFrame->width = info.Width;
+            desFrame->height = info.Height;
+            desFrame->format = info.Format;
+#ifndef USE_NEW_API
 			desFrame->pkt_pts = VideoFrame->pkt_pts;
+#endif
 			desFrame->pkt_dts = VideoFrame->pkt_dts;
 			desFrame->pts = VideoFrame->pts;
+            desFrame->pkt_size = retSize;
 
 			if (evoResult != NULL)
 			{
@@ -220,7 +267,7 @@ int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
 			}
 			else
 			{
-				FreeAVFrame(&retData);
+				FreeFrame(&retData);
 			}
 
 			av_frame_unref(this->VideoFrame);
@@ -230,4 +277,14 @@ int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
 	}
 
 	return 0;
+}
+
+int VideoDecoder::CreateFrame(AVFrame *out,int Width, int Height, AVPixelFormat Format)
+{
+	return av_image_alloc(out->data, out->linesize,Width, Height, Format, 1);
+}
+
+void VideoDecoder::FreeFrame(AVFrame **out)
+{
+	FreeAVFrame(out);
 }

@@ -2,10 +2,17 @@
 
 unsigned int EvoVideoConvert::GetSize(const EvoVideoInfo &info)
 {
+#ifdef USE_NEW_API
+    unsigned int dstSize = av_image_get_buffer_size(info.Format,
+                             info.Width,
+                             info.Height,
+                             1);
+#else
 	unsigned int dstSize = avpicture_get_size(
 		info.Format,
 		info.Width,
 		info.Height);
+#endif
 	return dstSize;
 }
 
@@ -307,7 +314,7 @@ int EvoVideoConvert::Convert(unsigned char *srcBuf, unsigned char *dstBuf, bool 
 
         memset(dstBuf, 0, sizeof(char)* dstSize);
 
-        //·­×ªÍ¼Ïñ:×óÓÒ·­×ª
+        //ç¿»è½¬å›¾åƒ:å·¦å³ç¿»è½¬
         if (doRotate){
             this->SrcFrame->data[0] += this->SrcFrame->linesize[0] * (this->SrcInfo.Height - 1);
             this->SrcFrame->linesize[0] *= -1;

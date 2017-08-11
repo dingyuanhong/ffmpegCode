@@ -1,6 +1,8 @@
 #ifndef EVOHEADER_H
 #define EVOHEADER_H
 
+//#define USE_NEW_API
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -13,8 +15,14 @@ extern "C" {
 #include "libavutil/imgutils.h"
 #include "libavutil/time.h"
 
+#ifdef USE_NEW_API
+#include "libavcodec/jni.h"
+#endif
+
 #ifdef __cplusplus
 }
 #endif
+
+
 
 #endif
