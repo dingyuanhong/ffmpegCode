@@ -27,10 +27,10 @@ inline int resetPacket(AVPacket * packet, AVPacket * pkt)
 	//生成自定义数据
 	char buffer[128];
 	sprintf(buffer, "pts:%lld dts:%lld", packet->pts, packet->dts);
-	int size = strlen(buffer);
-	char * data = buffer;
+	int sei_size = strlen(buffer);
+	char * sei_data = buffer;
 	//获取自定义数据长度
-	size_t sei_packet_size = get_sei_packet_size(size);
+	size_t sei_packet_size = get_sei_packet_size(sei_size);
 
 	av_new_packet(pkt, packet->size + (int)sei_packet_size);
 	memset(pkt->data, 0, packet->size + sei_packet_size);
@@ -39,7 +39,7 @@ inline int resetPacket(AVPacket * packet, AVPacket * pkt)
 	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
 	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
 
-	unsigned char *data = packet->data;
+	uint8_t *data = packet->data;
 	int size = packet->size;
 	bool isAnnexb = false;
 	if ((size > 3 && memcmp(data, ANNEXB_CODE_LOW, 3) == 0) ||
@@ -56,7 +56,7 @@ inline int resetPacket(AVPacket * packet, AVPacket * pkt)
 		memcpy(pkt->data + sei_packet_size, packet->data, packet->size);
 		//填充自定义数据
 		unsigned char * sei = (unsigned char*)pkt->data;
-		fill_sei_packet(sei, isAnnexb, data, size);
+		fill_sei_packet(sei, isAnnexb, sei_data, sei_size);
 	}
 	else
 	{
@@ -65,7 +65,7 @@ inline int resetPacket(AVPacket * packet, AVPacket * pkt)
 
 		//填充自定义数据
 		unsigned char * sei = (unsigned char*)pkt->data + packet->size;
-		fill_sei_packet(sei, isAnnexb, data, size);
+		fill_sei_packet(sei, isAnnexb, sei_data, sei_size);
 	}
 
 	return 0;

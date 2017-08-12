@@ -38,6 +38,7 @@ private:
     EvoVideoConvert convert;
     VideoDecoder *decoder;
 	AVCodecContext *codecContext;
+	uint8_t *extraData_;
 
     int64_t timestamp_now;
     int64_t timestamp_last;

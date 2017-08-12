@@ -3,6 +3,88 @@
 //
 
 #include "MediaControl.h"
+#ifndef _WIN32
+#include <android/log.h>
+#endif
+
+int GetAnnexbLength(uint8_t * nalu, int nalu_size)
+{
+    unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
+    unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
+
+    unsigned char *data = nalu;
+    int size = nalu_size;
+    if(data == NULL)
+    {
+        return 0;
+    }
+    if ((size > 3 && memcmp(data, ANNEXB_CODE_LOW,3) == 0))
+    {
+        return 3;
+    }
+    else if((size > 4 && memcmp(data, ANNEXB_CODE,4) == 0))
+    {
+        return 4;
+    }
+    return 0;
+}
+
+//MP4模式扩展数据
+inline uint8_t * MakeExtraData(uint8_t * sps, int sps_len, uint8_t * pps, int pps_len, int * out_len)
+{
+    int sps_header = GetAnnexbLength(sps,sps_len);
+    int pps_header = GetAnnexbLength(pps,pps_len);
+    sps += sps_header;
+    sps_len -= sps_header;
+    pps += pps_header;
+    pps_len -= pps_header;
+
+    int extraSize = 5 + 1 + 2 + sps_len + 1 + 2 + pps_len;
+    uint8_t * extraBuffer = (uint8_t*)av_malloc(extraSize);
+    memset(extraBuffer, 0, extraSize);
+    uint8_t * extra = extraBuffer;
+    extra[0] = 0x01;
+    extra[1] = sps[1];
+    extra[2] = sps[2];
+    extra[3] = sps[3];
+    extra[4] = 0xFF;
+    extra[5] = 0xE1;
+    extra[6] = sps_len >> 8;
+    extra[7] = sps_len & 0xFF;
+    memcpy(extra + 8, sps, sps_len);
+    extra += 8 + sps_len;
+    extra[0] = 0x01;
+    extra[1] = pps_len >> 8;
+    extra[2] = pps_len & 0xFF;
+    memcpy(extra + 3, pps, pps_len);
+
+    if (out_len != NULL) *out_len = extraSize;
+    return extraBuffer;
+}
+
+//标准H264扩展数据
+inline uint8_t * MakeH264ExtraData(uint8_t * sps, int sps_len, uint8_t * pps, int pps_len, int * out_len)
+{
+    int sps_header = GetAnnexbLength(sps,sps_len);
+    int pps_header = GetAnnexbLength(pps,pps_len);
+    sps += sps_header;
+    sps_len -= sps_header;
+    pps += pps_header;
+    pps_len -= pps_header;
+
+    int extraSize = 4 + sps_len + 4 + pps_len;
+    uint8_t * extraBuffer = (uint8_t*)av_malloc(extraSize);
+    memset(extraBuffer, 0, extraSize);
+    uint8_t * extra = extraBuffer;
+    extra[3] = 0x01;
+    memcpy(extra + 4, sps, sps_len);
+    extra += 4 + sps_len;
+    extra[3] = 0x01;
+    memcpy(extra + 4, pps, pps_len);
+
+    if (out_len != NULL) *out_len = extraSize;
+    return extraBuffer;
+}
 
 #ifdef _WIN32
 DWORD WINAPI MediaControl_Thread(void* param)
@@ -20,7 +102,7 @@ MediaControl::MediaControl()
     ,timestamp_last(0),timestamp_now(0),
      time_last(0),thread(0),
      decoder(NULL),frame_last(NULL),
-	codecContext(NULL)
+	codecContext(NULL),extraData_(NULL)
 {
 #ifndef _WIN32
     pthread_mutex_init(&lock,NULL);
@@ -36,29 +118,38 @@ MediaControl::~MediaControl()
 #endif
 }
 
-inline uint8_t * MakeExtraData(uint8_t * sps, int sps_len, uint8_t * pps, int pps_len, int * out_len)
-{
-	int extraSize = 5 + 1 + 2 + sps_len + 1 + 2 + pps_len;
-	uint8_t * extraBuffer = (uint8_t*)av_malloc(extraSize);
-	memset(extraBuffer, 0, extraSize);
-	uint8_t * extra = extraBuffer;
-	extra[0] = 0x01;
-	extra[1] = sps[1];
-	extra[2] = sps[2];
-	extra[3] = sps[3];
-	extra[4] = 0xFF;
-	extra[5] = 0xE1;
-	extra[6] = sps_len >> 8;
-	extra[7] = sps_len & 0xFF;
-	memcpy(extra + 8, sps, sps_len);
-	extra += 8 + sps_len;
-	extra[0] = 0x01;
-	extra[1] = pps_len >> 8;
-	extra[2] = pps_len & 0xFF;
-	memcpy(extra + 3, pps, pps_len);
+inline AVCodec *GetBestDecoder(AVCodecID id,enum AVMediaType type,std::string Name) {
+    if (Name.length() == 0) return NULL;
 
-	if (out_len != NULL) *out_len = extraSize;
-	return extraBuffer;
+    AVCodec *c_temp = av_codec_next(NULL);
+    while (c_temp != NULL) {
+        if (c_temp->id == id && c_temp->type == type
+            && c_temp->decode != NULL)
+        {
+            //__android_log_print(ANDROID_LOG_INFO,"native","Video H264 decode:%s\n",c_temp->name);
+        }
+        c_temp = c_temp->next;
+    }
+
+    std::string name = Name;
+    std::string decoder;
+    while (true) {
+        size_t pos = name.find(" ");
+        if (pos != -1) {
+            decoder = name.substr(0, pos);
+            name = name.substr(pos + 1);
+        }
+        else {
+            decoder = name;
+            name = "";
+        }
+        if (decoder.length() > 0) {
+            AVCodec * codec = avcodec_find_decoder_by_name(decoder.c_str());
+            if (codec != NULL && codec->id == id && codec->type == type) return codec;
+        }
+        if (name.length() == 0) break;
+    }
+    return NULL;
 }
 
 int MediaControl::Open(const char * file)
@@ -68,69 +159,66 @@ int MediaControl::Open(const char * file)
     {
 		bool newContext = true;
 		if (newContext) {
-			AVCodec *codec = avcodec_find_decoder(AV_CODEC_ID_H264);
+            AVCodec *codec = GetBestDecoder(AV_CODEC_ID_H264,AVMEDIA_TYPE_VIDEO,"h264_mediacodec");//h264_mediacodec
+            if (codec == NULL) codec = avcodec_find_decoder(AV_CODEC_ID_H264);
 			if (!codec) {
 				source.Close();
 				return -1;
 			}
-			codecContext = avcodec_alloc_context3(codec);
-
+			codecContext = avcodec_alloc_context3(NULL);
 			uint8_t extData[128];
-			int size = source.GetExtData(extData, 128);
-			uint8_t sps[128];
-			int sps_size = source.GetSPS(sps, 128);
-			uint8_t pps[128];
-			int pps_size = source.GetPPS(pps, 128);
-			int out_size = 0;
-			uint8_t *  extraData = MakeExtraData(sps + 4, sps_size - 4, pps + 4, pps_size - 4, &out_size);
-			if (memcmp(extraData, extData, out_size) == 0)
-			{
+            int size = source.GetExtData(extData, 128);
+            uint8_t sps[128];
+            int sps_size = source.GetSPS(sps,128);
+            uint8_t pps[128];
+            int pps_size = source.GetPPS(pps,128);
+            int out_size = 0;
+            uint8_t *  extraData = MakeExtraData(sps,sps_size,pps,pps_size,&out_size);
 
-			}
-			if (extraData != NULL)av_free(extraData); extraData = NULL;
-			codecContext->extradata = extData;
-			codecContext->extradata_size = size;
-			codecContext->width = source.GetWidth();
-			codecContext->height = source.GetHeight();
-			codecContext->coded_width = source.GetWidth();
-			codecContext->coded_height = source.GetHeight();
+			codecContext->extradata = extraData;
+			codecContext->extradata_size = out_size;
+            if(extraData_ != NULL)
+            {
+                av_free(extraData_);
+                extraData_ = NULL;
+            }
+            extraData_ = extraData;
 
-			/*codecContext->time_base = {1,60};
-			codecContext->delay = 4;
-			codecContext->request_sample_fmt = AV_SAMPLE_FMT_NONE;*/
-			/*codecContext->min_prediction_order = -1;
-			codecContext->max_prediction_order = -1;
-			codecContext->bits_per_raw_sample = 8;*/
+            codecContext->width = source.GetWidth();
+            codecContext->height = source.GetHeight();
+            codecContext->coded_width = source.GetWidth();
+            codecContext->coded_height = source.GetHeight();
 			//设置解码器数量用以加快解码速度
-			codecContext->thread_count = 5;
-			codecContext->active_thread_type = FF_THREAD_FRAME;
-			/*codecContext->profile = 100;
-			codecContext->level = 51;
-			codecContext->framerate = { 30,1 };
-			codecContext->pkt_timebase = {1,1200000 };*/
-			if (avcodec_open2(codecContext, codec, NULL) < 0)
+//			codecContext->thread_count = 5;
+//			codecContext->active_thread_type = FF_THREAD_FRAME;
+            ret = avcodec_open2(codecContext, codec, NULL);
+			if (ret != 0)
 			{
 				avcodec_free_context(&codecContext);
 				codecContext = NULL;
 				source.Close();
-				return -1;
+				return ret;
 			}
+            codecContext->codec = codec;
 			decoder = new VideoDecoder(codecContext);
 		}
 		else {
 			AVStream * stream = source.GetVideoStream();
 			AVCodecContext *Context = source.GetCodecContext();
 			if (Context == NULL) return -1;
-			AVCodec *codec = (AVCodec*)Context->codec;
+			//AVCodec *codec = (AVCodec*)Context->codec;
+            AVCodec *codec = GetBestDecoder(Context->codec_id,AVMEDIA_TYPE_VIDEO,"h264_mediacodec");
 			if (codec == NULL) codec = avcodec_find_decoder(Context->codec_id);
 			if (codec == NULL) {
 				source.Close();
 				return -1;
 			}
-			if (avcodec_open2(Context, codec, NULL) < 0)
+            Context->codec = codec;
+            ret = avcodec_open2(Context, codec, NULL);
+			if (ret != 0)
 			{
 				source.Close();
-				return -1;
+				return ret;
 			}
 			decoder = new VideoDecoder(Context);
 		}
@@ -159,9 +247,16 @@ int MediaControl::Close()
 	if (codecContext != NULL)
 	{
 		avcodec_close(codecContext);
-		avcodec_free_context(&codecContext);
+        codecContext->extradata = NULL;
+        codecContext->extradata_size = 0;
+        avcodec_free_context(&codecContext);
 		codecContext = NULL;
 	}
+    if(extraData_ != NULL)
+    {
+        av_free(extraData_);
+        extraData_ = NULL;
+    }
     source.Close();
     return 0;
 }
@@ -223,6 +318,7 @@ void MediaControl::Run()
 {
     AttachThread();
     time_last = av_gettime();
+    int64_t  timeBegin = 0;
     while(true)
     {
         if(bStop)
@@ -253,12 +349,17 @@ void MediaControl::Run()
             if(out != NULL)
             {
                 AVFrame *frame = NULL;
-				int64_t  timeBegin = av_gettime() / 1000;
+				if(timeBegin == 0)  timeBegin = av_gettime() / 1000;
                 decoder->DecodeFrame(out,&frame);
-				int64_t timeEnd = av_gettime() / 1000;
-				printf("native MeidaControl"" use:%lld\n", timeEnd - timeBegin);
+
                 if(frame != NULL)
                 {
+                    int64_t timeEnd = av_gettime() / 1000;
+#ifndef _WIN32
+                    __android_log_print(ANDROID_LOG_INFO,"native MeidaControl"," use:%lld\n", timeEnd - timeBegin);
+#endif
+                    timeBegin = 0;
+
 					timestamp_now = out->timestamp;
                     if(av_gettime() - time_last > timestamp_now - timestamp_last) {
                         timestamp_last = timestamp_now;
