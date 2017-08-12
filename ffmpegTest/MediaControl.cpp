@@ -7,7 +7,7 @@
 #include <android/log.h>
 #endif
 
-int GetAnnexbLength(uint8_t * nalu, int nalu_size)
+inline int GetAnnexbLength(uint8_t * nalu, int nalu_size)
 {
     unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
     unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
@@ -194,6 +194,8 @@ int MediaControl::Open(const char * file)
             ret = avcodec_open2(codecContext, codec, NULL);
 			if (ret != 0)
 			{
+                codecContext->extradata = NULL;
+                codecContext->extradata_size = 0;
 				avcodec_free_context(&codecContext);
 				codecContext = NULL;
 				source.Close();

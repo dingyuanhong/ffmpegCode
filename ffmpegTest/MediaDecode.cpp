@@ -3,34 +3,89 @@
 //
 
 #include "MediaDecode.h"
-#include "../EvoInterface/sei_packet.h"
+#include "EvoInterface/sei_packet.h"
 #ifndef _WIN32
 #include "android/log.h"
 #endif
 
-MediaDecode::MediaDecode()
-:VideoDecoder(NULL),codecContent(NULL)
+inline int GetAnnexbLength(uint8_t * nalu, int nalu_size)
 {
-    time_base.num = 0;
-    time_base.den = 1;
-    extradata = NULL;
+    unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
+    unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
+
+    unsigned char *data = nalu;
+    int size = nalu_size;
+    if(data == NULL)
+    {
+        return 0;
+    }
+    if ((size > 3 && memcmp(data, ANNEXB_CODE_LOW,3) == 0))
+    {
+        return 3;
+    }
+    else if((size > 4 && memcmp(data, ANNEXB_CODE,4) == 0))
+    {
+        return 4;
+    }
+    return 0;
 }
 
-MediaDecode::~MediaDecode()
+//MP4模式扩展数据
+inline uint8_t * MakeExtraData(uint8_t * sps, int sps_len, uint8_t * pps, int pps_len, int * out_len)
 {
-    if(codecContent != NULL)
-    {
-        avcodec_close(codecContent);
-        avcodec_free_context(&codecContent);
-    }
-    if(extradata != NULL)
-    {
-        av_free(extradata);
-        extradata = NULL;
-    }
+    int sps_header = GetAnnexbLength(sps,sps_len);
+    int pps_header = GetAnnexbLength(pps,pps_len);
+    sps += sps_header;
+    sps_len -= sps_header;
+    pps += pps_header;
+    pps_len -= pps_header;
+
+    int extraSize = 5 + 1 + 2 + sps_len + 1 + 2 + pps_len;
+    uint8_t * extraBuffer = (uint8_t*)av_malloc(extraSize);
+    memset(extraBuffer, 0, extraSize);
+    uint8_t * extra = extraBuffer;
+    extra[0] = 0x01;
+    extra[1] = sps[1];
+    extra[2] = sps[2];
+    extra[3] = sps[3];
+    extra[4] = 0xFF;
+    extra[5] = 0xE1;
+    extra[6] = sps_len >> 8;
+    extra[7] = sps_len & 0xFF;
+    memcpy(extra + 8, sps, sps_len);
+    extra += 8 + sps_len;
+    extra[0] = 0x01;
+    extra[1] = pps_len >> 8;
+    extra[2] = pps_len & 0xFF;
+    memcpy(extra + 3, pps, pps_len);
+
+    if (out_len != NULL) *out_len = extraSize;
+    return extraBuffer;
 }
-char  sps[] = {0x67,0x64,0x00,0x33,0xac,0x1b,0x1a,0x80,0x2f,0x80,0xbf,0xa1,0x00,0x00,0x03,0x00,0x01,0x00,0x00,0x03,0x00,0x3c,0x8f,0x14,0x2a,0xa0};
-char pps[] = {0x68,0xee,0x0b,0xcb};
+
+//标准H264扩展数据
+inline uint8_t * MakeH264ExtraData(uint8_t * sps, int sps_len, uint8_t * pps, int pps_len, int * out_len)
+{
+    int sps_header = GetAnnexbLength(sps,sps_len);
+    int pps_header = GetAnnexbLength(pps,pps_len);
+    sps += sps_header;
+    sps_len -= sps_header;
+    pps += pps_header;
+    pps_len -= pps_header;
+
+    int extraSize = 4 + sps_len + 4 + pps_len;
+    uint8_t * extraBuffer = (uint8_t*)av_malloc(extraSize);
+    memset(extraBuffer, 0, extraSize);
+    uint8_t * extra = extraBuffer;
+    extra[3] = 0x01;
+    memcpy(extra + 4, sps, sps_len);
+    extra += 4 + sps_len;
+    extra[3] = 0x01;
+    memcpy(extra + 4, pps, pps_len);
+
+    if (out_len != NULL) *out_len = extraSize;
+    return extraBuffer;
+}
 
 AVCodec *GetBestVideoDecoder(AVCodecID id,std::string Name) {
     if (Name.length() == 0) return NULL;
@@ -40,7 +95,9 @@ AVCodec *GetBestVideoDecoder(AVCodecID id,std::string Name) {
         if (c_temp->id == id && c_temp->type == AVMEDIA_TYPE_VIDEO
             && c_temp->decode != NULL)
         {
-            //__android_log_print(ANDROID_LOG_INFO,"native","Video H264 decode:%s\n",c_temp->name);
+#ifndef _WIN32
+            __android_log_print(ANDROID_LOG_INFO,"native","Video H264 decode:%s\n",c_temp->name);
+#endif
         }
         c_temp = c_temp->next;
     }
@@ -66,44 +123,69 @@ AVCodec *GetBestVideoDecoder(AVCodecID id,std::string Name) {
     return NULL;
 }
 
-uint8_t * MakeExtraData(char * sps,int sps_len,char * pps,int pps_len,int * out_len)
+MediaDecode::MediaDecode()
+:VideoDecoder(NULL),codecContent(NULL)
 {
-    int extraSize = 5 + 1 + 2 + sps_len + 1 + 2 + pps_len;
-    uint8_t * extraBuffer = (uint8_t*)av_malloc(extraSize);
-    memset(extraBuffer,0,extraSize);
-    uint8_t * extra = extraBuffer;
-    extra[0] = 0x01;
-    extra[1] = sps[1];
-    extra[2] = sps[2];
-    extra[3] = sps[3];
-    extra[4] = 0xFF;
-    extra[5] = 0xE1;
-    extra[6] = sps_len >> 8;
-    extra[7] = sps_len & 0xFF;
-    memcpy(extra + 8,sps,sps_len);
-    extra += 8 + sps_len;
-    extra[0] = 0x01;
-    extra[1] = pps_len >> 8;
-    extra[2] = pps_len & 0xFF;
-    memcpy(extra + 3,pps,pps_len);
+    time_base.num = 0;
+    time_base.den = 1;
+    extradata_ = NULL;
 
-    if(out_len != NULL) *out_len = extraSize;
-    return extraBuffer;
+    width_ = 0;
+    height_ = 0;
+    sps_ = NULL;
+    sps_len_ = 0;
+    pps_ = NULL;
+    pps_len_ = 0;
 }
 
-void av_log_callback(void*, int level, const char* fmt, va_list)
+MediaDecode::~MediaDecode()
 {
-    //__android_log_print(ANDROID_LOG_INFO,"native","al_log:%s",fmt);
+    if(codecContent != NULL)
+    {
+        avcodec_close(codecContent);
+        codecContent->extradata = NULL;
+        codecContent->extradata_size = 0;
+        avcodec_free_context(&codecContent);
+        codecContent = NULL;
+    }
+    if(extradata_ != NULL)
+    {
+        av_free(extradata_);
+        extradata_ = NULL;
+    }
+
+    if(sps_ != NULL)
+    {
+        av_free(sps_);
+        sps_ = NULL;
+        sps_len_ = 0;
+    }
+
+    if(pps_ != NULL)
+    {
+        av_free(pps_);
+        pps_ = NULL;
+        pps_len_ = 0;
+    }
 }
+
+static uint8_t  sps[] = {0x67,0x64,0x00,0x33,0xac,0x1b,0x1a,0x80,0x2f,0x80,0xbf,0xa1,0x00,0x00,0x03,0x00,0x01,0x00,0x00,0x03,0x00,0x3c,0x8f,0x14,0x2a,0xa0};
+static uint8_t pps[] = {0x68,0xee,0x0b,0xcb};
 
 int MediaDecode::init(int thread_count)
 {
     av_register_all();
+    if(width_ <= 0 || height_ <= 0) return AVERROR_EXTERNAL;
+    if(sps_ == NULL || sps_len_ <= 0) return AVERROR_EXTERNAL;
+    if(pps_ == NULL || pps_len_ <= 0) return AVERROR_EXTERNAL;
+
     AVCodec *codec = GetBestVideoDecoder(AV_CODEC_ID_H264,"h264_mediacodec");
     if(codec == NULL) codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-    else thread_count = 0;
-    if(codec == NULL) return -1;
-    //__android_log_print(ANDROID_LOG_INFO,"native","AVCodec:%s",codec->name);
+    //else thread_count = 0;
+    if(codec == NULL) return AVERROR_EXTERNAL;
+#ifndef _WIN32
+    __android_log_print(ANDROID_LOG_INFO,"native","AVCodec:%s",codec->name);
+#endif
     codecContent = avcodec_alloc_context3(codec);
     if(thread_count > 1)
     {
@@ -111,33 +193,40 @@ int MediaDecode::init(int thread_count)
         codecContent->thread_count = thread_count;
     }
     int out_size = 0;
-    uint8_t * extraData = MakeExtraData(sps,sizeof(sps)/sizeof(sps[0]),pps,sizeof(pps)/sizeof(pps[0]),&out_size);
+//    uint8_t * extraData = MakeH264ExtraData(sps,sizeof(sps)/sizeof(sps[0]),pps,sizeof(pps)/sizeof(pps[0]),&out_size);
+    uint8_t * extraData = MakeH264ExtraData(sps_,sps_len_,pps_,pps_len_,&out_size);
     if(extraData != NULL)
     {
         codecContent->extradata = extraData;
         codecContent->extradata_size = out_size;
     }
-    if(extradata != NULL)
+    if(extradata_ != NULL)
     {
-        av_free(extradata);
-        extradata = NULL;
+        av_free(extradata_);
+        extradata_ = NULL;
     }
-    extradata = extraData;
-    codecContent->width = 3040;
-    codecContent->height = 1520;
-    av_log_set_callback(av_log_callback);
+    extradata_ = extraData;
+
+    codecContent->width = width_;
+    codecContent->height = height_;
+    codecContent->coded_width = width_;
+    codecContent->coded_height = height_;
     int ret = 0;
     if((ret = avcodec_open2(codecContent,codec,NULL)) != 0)
     {
         char errbuf[64] = {0};
         av_strerror(ret, errbuf, 64);
+        codecContent->extradata_size = 0;
+        codecContent->extradata = NULL;
         avcodec_free_context(&codecContent);
         codecContent = NULL;
-        return -1;
+        return ret;
     }
     if(VideoCodecCtx  != NULL)
     {
         avcodec_close(VideoCodecCtx);
+        codecContent->extradata_size = 0;
+        codecContent->extradata = NULL;
         avcodec_free_context(&VideoCodecCtx);
         VideoCodecCtx = NULL;
     }
@@ -152,8 +241,45 @@ int MediaDecode::init(int thread_count)
     des.Format = AV_PIX_FMT_YUV420P;
     convert.Initialize(info,des);
     Attach(&convert);
-
     return 0;
+}
+
+void MediaDecode::SetWidth(int width)
+{
+    width_ = width;
+}
+
+void MediaDecode::SetHeight(int height)
+{
+    height_ = height;
+}
+
+void MediaDecode::SetSPS(uint8_t * sps,int sps_len)
+{
+    if(sps_ != NULL)
+    {
+        av_free(sps_);
+        sps_ = NULL;
+        sps_len_ = 0;
+    }
+    if(sps == NULL || sps_len == 0) return;
+    sps_ = (uint8_t*)av_malloc(sps_len);
+    memcpy(sps_,sps,sps_len);
+    sps_len_ = sps_len;
+}
+
+void MediaDecode::SetPPS(uint8_t * pps,int pps_len)
+{
+    if(pps_ != NULL)
+    {
+        av_free(pps_);
+        pps_ = NULL;
+        pps_len_ = 0;
+    }
+    if(pps == NULL || pps_len == 0) return;
+    pps_ = (uint8_t*)av_malloc(pps_len);
+    memcpy(pps_,sps,pps_len);
+    pps_len_ = pps_len;
 }
 
 int MediaDecode::decode(uint8_t * data, int32_t size)
@@ -170,8 +296,9 @@ int MediaDecode::decode(uint8_t * data, int32_t size)
         char buffer[256] = {0};
         int count = 256;
         ret = get_sei_content(data,size,buffer,&count);
+#ifndef _WIN32
 //        __android_log_print(ANDROID_LOG_DEBUG,"JNI-DECODER","buffer = %s",buffer);
-
+#endif
         if(ret > 0)
         {
             int cflags = 0;
@@ -195,7 +322,9 @@ int MediaDecode::decode(uint8_t * data, int32_t size)
             packet.pts = cpts;
             packet.dts = cdts;
             packet.flags = cflags;
+#ifndef _WIN32
 //            __android_log_print(ANDROID_LOG_DEBUG,"JNI-DECODER","pts:%lld dts:%lld",cpts,cdts);
+#endif
         } else
         {
             packet.pts = AV_NOPTS_VALUE;
@@ -204,10 +333,16 @@ int MediaDecode::decode(uint8_t * data, int32_t size)
         int64_t timeBegin = av_gettime()/1000;
         ret = DecodePacket(&packet,&evoResult);
         int64_t timeEnd = av_gettime() / 1000;
-        //__android_log_print(ANDROID_LOG_INFO,"native MediaDecode","use:%lld",timeEnd - timeBegin);
-
+#ifndef _WIN32
+        __android_log_print(ANDROID_LOG_INFO,"native MediaDecode","use:%lld",timeEnd - timeBegin);
+#endif
     } else{
+        int64_t timeBegin = av_gettime()/1000;
         ret = DecodePacket((EvoPacket*)NULL,&evoResult);
+        int64_t timeEnd = av_gettime() / 1000;
+#ifndef _WIN32
+        __android_log_print(ANDROID_LOG_INFO,"native MediaDecode","use:%lld",timeEnd - timeBegin);
+#endif
     }
     if(evoResult != NULL)
     {
