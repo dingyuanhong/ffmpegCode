@@ -36,6 +36,18 @@ inline int resetPacket(AVPacket * packet, AVPacket * pkt)
 	memset(pkt->data, 0, packet->size + sei_packet_size);
 	pkt->pts = packet->pts;
 	pkt->dts = packet->dts;
+	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
+	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
+
+	unsigned char *data = packet->data;
+	int size = packet->size;
+	bool isAnnexb = false;
+	if ((size > 3 && memcmp(data, ANNEXB_CODE_LOW, 3) == 0) ||
+		(size > 4 && memcmp(data, ANNEXB_CODE, 4) == 0)
+		)
+	{
+		isAnnexb = true;
+	}
 
 	bool addInHead = true;
 	if (addInHead)
@@ -44,7 +56,7 @@ inline int resetPacket(AVPacket * packet, AVPacket * pkt)
 		memcpy(pkt->data + sei_packet_size, packet->data, packet->size);
 		//填充自定义数据
 		unsigned char * sei = (unsigned char*)pkt->data;
-		fill_sei_packet(sei, false, data, size);
+		fill_sei_packet(sei, isAnnexb, data, size);
 	}
 	else
 	{
@@ -53,7 +65,7 @@ inline int resetPacket(AVPacket * packet, AVPacket * pkt)
 
 		//填充自定义数据
 		unsigned char * sei = (unsigned char*)pkt->data + packet->size;
-		fill_sei_packet(sei, false, data, size);
+		fill_sei_packet(sei, isAnnexb, data, size);
 	}
 
 	return 0;
