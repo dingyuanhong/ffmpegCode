@@ -22,6 +22,47 @@ inline AVFormatContext * av_open_file(const char * file)
 	return formatContext;
 }
 
+inline bool isH264Annexb(uint8_t *data, int size)
+{
+	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
+	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
+
+	bool isAnnexb = false;
+	if (data == NULL)
+	{
+		return isAnnexb;
+	}
+
+	if ((size > 3 && memcmp(data, ANNEXB_CODE_LOW, 3) == 0) ||
+		(size > 4 && memcmp(data, ANNEXB_CODE, 4) == 0)
+		)
+	{
+		isAnnexb = true;
+	}
+	return isAnnexb;
+}
+
+inline int GetAnnexbSize(uint8_t *data, int size)
+{
+	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
+	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
+
+	if (data == NULL)
+	{
+		return 0;
+	}
+
+	if ((size > 3 && memcmp(data, ANNEXB_CODE_LOW, 3) == 0) )
+	{
+		return 3;
+	}
+	else if ((size > 4 && memcmp(data, ANNEXB_CODE, 4) == 0))
+	{
+		return 4;
+	}
+	return 0;
+}
+
 inline int resetPacket(AVPacket * packet, AVPacket * pkt)
 {
 	//生成自定义数据
@@ -36,18 +77,11 @@ inline int resetPacket(AVPacket * packet, AVPacket * pkt)
 	memset(pkt->data, 0, packet->size + sei_packet_size);
 	pkt->pts = packet->pts;
 	pkt->dts = packet->dts;
-	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
-	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
+	
 
 	uint8_t *data = packet->data;
 	int size = packet->size;
-	bool isAnnexb = false;
-	if ((size > 3 && memcmp(data, ANNEXB_CODE_LOW, 3) == 0) ||
-		(size > 4 && memcmp(data, ANNEXB_CODE, 4) == 0)
-		)
-	{
-		isAnnexb = true;
-	}
+	bool isAnnexb = isH264Annexb(data,size);
 
 	bool addInHead = true;
 	if (addInHead)
