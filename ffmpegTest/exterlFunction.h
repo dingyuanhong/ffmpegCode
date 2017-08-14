@@ -2,11 +2,13 @@
 #include "EvHeade.h"
 #include "sei_packet.h"
 
-inline AVFormatContext * av_open_file(const char * file)
+inline AVFormatContext * avOpenFile(const char * file)
 {
+	if (file == NULL) return NULL;
+
 	AVFormatContext * formatContext = avformat_alloc_context();
 
-	int ret = avformat_open_input(&formatContext, "../sp.mp4", NULL, NULL);
+	int ret = avformat_open_input(&formatContext, file, NULL, NULL);
 	if (ret != 0) {
 		avformat_close_input(&formatContext);
 		return NULL;
@@ -63,7 +65,7 @@ inline int GetAnnexbSize(uint8_t *data, int size)
 	return 0;
 }
 
-inline int resetPacket(AVPacket * packet, AVPacket * pkt)
+inline int resetVideoPacket(AVPacket * packet, AVPacket * pkt)
 {
 	//生成自定义数据
 	char buffer[128];
@@ -138,25 +140,26 @@ inline int decodeVideo(AVCodecContext * context, AVPacket * packet, AVFrame * fr
 	return ret;
 }
 
-inline int getVideoId(AVFormatContext * formatContext)
+//AVMEDIA_TYPE_VIDEO
+inline int getStreamId(AVFormatContext * formatContext, enum AVMediaType codec_type = AVMEDIA_TYPE_VIDEO)
 {
-	int videoIndex = -1;
+	int streamIndex = -1;
 	for (size_t i = 0; i < formatContext->nb_streams; i++)
 	{
 #ifdef USE_NEW_API
-		if (formatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+		if (formatContext->streams[i]->codecpar->codec_type == codec_type)
 #else
-		if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+		if (formatContext->streams[i]->codec->codec_type == codec_type)
 #endif
 		{
-			videoIndex = (int)i;
+			streamIndex = (int)i;
 			break;
 		}
 	}
-	return videoIndex;
+	return streamIndex;
 }
 
-inline AVCodecContext * openCodec(AVStream * stream)
+inline AVCodecContext * openCodecContext(AVStream * stream)
 {
 #ifdef USE_NEW_API
 	AVCodecParameters * paramter = stream->codecpar;
@@ -178,6 +181,22 @@ inline AVCodecContext * openCodec(AVStream * stream)
 	}
 
 	return codecContext;
+}
+
+inline unsigned int GetPictureSize(AVPixelFormat Format, int Width, int Height)
+{
+#ifdef USE_NEW_API
+	unsigned int dstSize = av_image_get_buffer_size(Format,
+		Width,
+		Height,
+		1);
+#else
+	unsigned int dstSize = avpicture_get_size(
+		Format,
+		Width,
+		Height);
+#endif
+	return dstSize;
 }
 
 #ifndef USE_NEW_API

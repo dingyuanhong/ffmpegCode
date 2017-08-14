@@ -208,14 +208,14 @@ inline int testFFmpegIO(const char * path)
 		return -1;
 	}
 
-	int videoIndex = getVideoId(formatContext);
+	int videoIndex = getStreamId(formatContext);
 	if (videoIndex == -1)
 	{
 
 		avformat_close_input(&formatContext);
 		return -1;
 	}
-	AVCodecContext * codecContext = openCodec(formatContext->streams[videoIndex]);
+	AVCodecContext * codecContext = openCodecContext(formatContext->streams[videoIndex]);
 	if (codecContext == NULL)
 	{
 		avformat_close_input(&formatContext);

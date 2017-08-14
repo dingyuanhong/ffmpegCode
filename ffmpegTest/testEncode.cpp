@@ -4,40 +4,16 @@
 #include "sei_packet.h"
 #include "Encode.h"
 #include "SEIEncode.h"
-
-inline unsigned int GetPictureSize(AVPixelFormat Format,int Width,int Height)
-{
-#ifdef USE_NEW_API
-	unsigned int dstSize = av_image_get_buffer_size(Format,
-		Width,
-		Height,
-		1);
-#else
-	unsigned int dstSize = avpicture_get_size(
-		Format,
-		Width,
-		Height);
-#endif
-	return dstSize;
-}
-
-#ifdef USE_NEW_API
-static AVCodecContext *CreateCodecContent(AVCodecParameters *codecpar)
-{
-	AVCodecContext *codecContext = avcodec_alloc_context3(NULL);
-	avcodec_parameters_to_context(codecContext, codecpar);
-	return codecContext;
-}
-#endif
+#include "exterlFunction.h"
 
 //file = "../1.mp4"
-inline int testEncode(const char * file)
+inline int testEncode(const char * infile,const char * outfile)
 {
 	int in_w = 480, in_h = 272;                              //Input data's width and height  
 
 
 	SEIEncode encode;
-	int ret = encode.Open(file);
+	int ret = encode.Open(outfile);
 	if (ret != 0)
 	{
 		return -1;
@@ -49,8 +25,7 @@ inline int testEncode(const char * file)
 	}
 	encode.WriteHeader();
 
-	//FILE *in_file = fopen("src01_480x272.yuv", "rb"); //Input raw YUV data   
-	FILE *in_file = fopen("../ds_480x272.yuv", "rb");   //Input raw YUV data  
+	FILE *in_file = fopen(infile, "rb");   //Input raw YUV data  
 
 	int framenum = 100;                                   //Frames to encode  
 

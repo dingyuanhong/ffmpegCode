@@ -45,14 +45,17 @@
     <ClCompile Include="MediaControl.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="sei_packet.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="SEIEncode.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="MediaDecode.cpp">
       <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="testEncode2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="testConvert.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -69,9 +72,6 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="MediaControl.h">
-      <Filter>Source</Filter>
-    </ClInclude>
-    <ClInclude Include="sei_packet.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="SEIEncode.h">

@@ -96,7 +96,7 @@ int EvoMediaSource::Open(const char * file, EvoMediaSourceConfig *config, enum A
 
 	context_->probesize = 1024;
 #ifndef USE_NEW_API
-	context_->max_analyze_duration = 5 * AV_TIME_BASE;
+	//context_->max_analyze_duration = 5 * AV_TIME_BASE;
 #endif
 	if (avformat_find_stream_info(context_, NULL))
 	{

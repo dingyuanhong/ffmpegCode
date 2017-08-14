@@ -163,9 +163,10 @@
     <ClCompile Include="MediaControl.cpp" />
     <ClCompile Include="MediaDecode.cpp" />
     <ClCompile Include="SEIEncode.cpp" />
-    <ClCompile Include="sei_packet.cpp" />
     <ClCompile Include="SourceTest.cpp" />
+    <ClCompile Include="testConvert.cpp" />
     <ClCompile Include="testEncode.cpp" />
+    <ClCompile Include="testEncode2.cpp" />
     <ClCompile Include="testffmpeg.cpp" />
     <ClCompile Include="testFFmpegIO.cpp" />
     <ClCompile Include="testFLV.cpp" />
@@ -179,7 +180,6 @@
     <ClInclude Include="MediaControl.h" />
     <ClInclude Include="MediaDecode.h" />
     <ClInclude Include="SEIEncode.h" />
-    <ClInclude Include="sei_packet.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

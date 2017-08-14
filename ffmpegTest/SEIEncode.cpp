@@ -1,6 +1,6 @@
 
 #include "SEIEncode.h"
-#include "sei_packet.h"
+#include "EvoInterface/sei_packet.h"
 
 static int resetPacket(AVPacket * packet, AVPacket * pkt)
 {

@@ -6,22 +6,12 @@ inline int testFFmpeg(const char * file)
 {
 	av_register_all();
 
-	AVFormatContext * formatContext = avformat_alloc_context();
-
-	int ret = avformat_open_input(&formatContext, file, NULL, NULL);
-	if (ret != 0) {
-		avformat_close_input(&formatContext);
-		return -1;
-	}
-
-	ret = avformat_find_stream_info(formatContext, NULL);
-	if (ret != 0)
+	AVFormatContext * formatContext = avOpenFile(file);
+	if (formatContext == NULL)
 	{
-		avformat_close_input(&formatContext);
 		return -1;
 	}
-
-	int videoIndex = getVideoId(formatContext);
+	int videoIndex = getStreamId(formatContext);
 
 	if (videoIndex == -1)
 	{
@@ -29,7 +19,7 @@ inline int testFFmpeg(const char * file)
 		return -1;
 	}
 
-	AVCodecContext * codecContext = openCodec(formatContext->streams[videoIndex]);
+	AVCodecContext * codecContext = openCodecContext(formatContext->streams[videoIndex]);
 	if (codecContext == NULL)
 	{
 		avformat_close_input(&formatContext);
@@ -42,7 +32,7 @@ inline int testFFmpeg(const char * file)
 
 	while (true)
 	{
-		ret = av_read_frame(formatContext, packet);
+		int ret = av_read_frame(formatContext, packet);
 		if (ret == 0)
 		{
 			if (packet->stream_index == videoIndex)
