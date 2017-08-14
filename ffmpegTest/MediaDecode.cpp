@@ -136,6 +136,8 @@ MediaDecode::MediaDecode()
     sps_len_ = 0;
     pps_ = NULL;
     pps_len_ = 0;
+
+    isUseAVCC  = false;
 }
 
 MediaDecode::~MediaDecode()
@@ -169,8 +171,8 @@ MediaDecode::~MediaDecode()
     }
 }
 
-static uint8_t  sps[] = {0x67,0x64,0x00,0x33,0xac,0x1b,0x1a,0x80,0x2f,0x80,0xbf,0xa1,0x00,0x00,0x03,0x00,0x01,0x00,0x00,0x03,0x00,0x3c,0x8f,0x14,0x2a,0xa0};
-static uint8_t pps[] = {0x68,0xee,0x0b,0xcb};
+//static uint8_t  static_sps[] = {0x67,0x64,0x00,0x33,0xac,0x1b,0x1a,0x80,0x2f,0x80,0xbf,0xa1,0x00,0x00,0x03,0x00,0x01,0x00,0x00,0x03,0x00,0x3c,0x8f,0x14,0x2a,0xa0};
+//static uint8_t static_pps[] = {0x68,0xee,0x0b,0xcb};
 
 int MediaDecode::init(int thread_count)
 {
@@ -181,7 +183,6 @@ int MediaDecode::init(int thread_count)
 
     AVCodec *codec = GetBestVideoDecoder(AV_CODEC_ID_H264,"h264_mediacodec");
     if(codec == NULL) codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-    //else thread_count = 0;
     if(codec == NULL) return AVERROR_EXTERNAL;
 #ifndef _WIN32
     __android_log_print(ANDROID_LOG_INFO,"native","AVCodec:%s",codec->name);
@@ -193,8 +194,18 @@ int MediaDecode::init(int thread_count)
         codecContent->thread_count = thread_count;
     }
     int out_size = 0;
-//    uint8_t * extraData = MakeH264ExtraData(sps,sizeof(sps)/sizeof(sps[0]),pps,sizeof(pps)/sizeof(pps[0]),&out_size);
-    uint8_t * extraData = MakeH264ExtraData(sps_,sps_len_,pps_,pps_len_,&out_size);
+    uint8_t * extraData = NULL;
+    if(isUseAVCC)
+    {
+        //extraData = MakeExtraData(static_sps,sizeof(static_sps)/sizeof(static_sps[0]),static_pps,sizeof(static_pps)/sizeof(static_pps[0]),&out_size);
+        extraData = MakeExtraData(sps_,sps_len_,pps_,pps_len_,&out_size);
+    }
+    else
+    {
+//        extraData = MakeH264ExtraData(static_sps,sizeof(static_sps)/sizeof(static_sps[0]),static_pps,sizeof(static_pps)/sizeof(static_pps[0]),&out_size);
+        extraData = MakeH264ExtraData(sps_,sps_len_,pps_,pps_len_,&out_size);
+    }
+
     if(extraData != NULL)
     {
         codecContent->extradata = extraData;
@@ -278,8 +289,13 @@ void MediaDecode::SetPPS(uint8_t * pps,int pps_len)
     }
     if(pps == NULL || pps_len == 0) return;
     pps_ = (uint8_t*)av_malloc(pps_len);
-    memcpy(pps_,sps,pps_len);
+    memcpy(pps_,pps,pps_len);
     pps_len_ = pps_len;
+}
+
+void MediaDecode::UseAVCC()
+{
+    isUseAVCC = true;
 }
 
 int MediaDecode::decode(uint8_t * data, int32_t size)

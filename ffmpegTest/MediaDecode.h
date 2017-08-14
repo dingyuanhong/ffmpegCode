@@ -20,6 +20,7 @@ public:
     void SetSPS(uint8_t * sps,int sps_len);
     void SetPPS(uint8_t * pps,int pps_len);
     int decode(uint8_t * data, int32_t size);
+    void UseAVCC();
     virtual void SendPacket(AVFrame * frame) = 0;
 private:
     EvoVideoConvert convert;
@@ -32,6 +33,7 @@ private:
     int sps_len_;
     uint8_t * pps_;
     int pps_len_;
+    bool isUseAVCC;
 };
 
 
