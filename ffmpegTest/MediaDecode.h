@@ -14,7 +14,7 @@ class MediaDecode
 public:
     MediaDecode();
     ~MediaDecode();
-    int init(int thread_count);
+    int init(const char * name,int thread_count);
     void SetWidth(int width);
     void SetHeight(int height);
     void SetSPS(uint8_t * sps,int sps_len);

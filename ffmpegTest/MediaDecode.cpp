@@ -87,7 +87,9 @@ inline uint8_t * MakeH264ExtraData(uint8_t * sps, int sps_len, uint8_t * pps, in
     return extraBuffer;
 }
 
-AVCodec *GetBestVideoDecoder(AVCodecID id,std::string Name) {
+inline AVCodec *GetBestVideoDecoder(AVCodecID id,const char* n) {
+    if(n == NULL) return NULL;
+    std::string Name = n;
     if (Name.length() == 0) return NULL;
 
     AVCodec *c_temp = av_codec_next(NULL);
@@ -105,6 +107,7 @@ AVCodec *GetBestVideoDecoder(AVCodecID id,std::string Name) {
     std::string name = Name;
     std::string decoder;
     while (true) {
+
         size_t pos = name.find(" ");
         if (pos != -1) {
             decoder = name.substr(0, pos);
@@ -174,14 +177,14 @@ MediaDecode::~MediaDecode()
 //static uint8_t  static_sps[] = {0x67,0x64,0x00,0x33,0xac,0x1b,0x1a,0x80,0x2f,0x80,0xbf,0xa1,0x00,0x00,0x03,0x00,0x01,0x00,0x00,0x03,0x00,0x3c,0x8f,0x14,0x2a,0xa0};
 //static uint8_t static_pps[] = {0x68,0xee,0x0b,0xcb};
 
-int MediaDecode::init(int thread_count)
+int MediaDecode::init(const char * name,int thread_count)
 {
     av_register_all();
     if(width_ <= 0 || height_ <= 0) return AVERROR_EXTERNAL;
     if(sps_ == NULL || sps_len_ <= 0) return AVERROR_EXTERNAL;
     if(pps_ == NULL || pps_len_ <= 0) return AVERROR_EXTERNAL;
-
-    AVCodec *codec = GetBestVideoDecoder(AV_CODEC_ID_H264,"h264_mediacodec");
+    //"h264_mediacodec"
+    AVCodec *codec = GetBestVideoDecoder(AV_CODEC_ID_H264,name);
     if(codec == NULL) codec = avcodec_find_decoder(AV_CODEC_ID_H264);
     if(codec == NULL) return AVERROR_EXTERNAL;
 #ifndef _WIN32
