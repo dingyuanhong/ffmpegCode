@@ -225,6 +225,17 @@ int MediaControl::Open(const char * file)
 			decoder = new VideoDecoder(Context);
 		}
     }
+    if(decoder != NULL)
+    {
+        EvoVideoInfo info ;
+        info.Width = 0;
+        info.Height = 0;
+        info.Format = AV_PIX_FMT_NONE;
+        EvoVideoInfo oInfo = info;
+        oInfo.Format = AV_PIX_FMT_YUV420P;
+        convert.Initialize(info,oInfo);
+        decoder->Attach(&convert);
+    }
     return ret;
 }
 
