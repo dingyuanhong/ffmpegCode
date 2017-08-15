@@ -200,14 +200,14 @@ inline unsigned int GetPictureSize(AVPixelFormat Format, int Width, int Height)
 }
 
 #ifndef USE_NEW_API
-inline inline AVPacket * av_packet_alloc()
+inline AVPacket * av_packet_alloc()
 {
 	AVPacket * packet = (AVPacket*)av_malloc(sizeof(AVPacket));
 	av_init_packet(packet);
 	return packet;
 }
 
-inline inline void av_packet_free(AVPacket **ppacket)
+inline void av_packet_free(AVPacket **ppacket)
 {
 	if (ppacket == NULL) return;
 	AVPacket *packet = *ppacket;
