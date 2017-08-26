@@ -10,7 +10,7 @@ static int resetPacket(AVPacket * packet, AVPacket * pkt)
 
 	size_t len = strlen(buffer);
 	//获取自定义数据长度
-	size_t sei_packet_size = get_sei_packet_size(len);
+	size_t sei_packet_size = get_sei_packet_size((const uint8_t*)buffer,len);
 
 	av_new_packet(pkt, packet->size + (int)sei_packet_size);
 	memset(pkt->data, 0, packet->size + sei_packet_size);
@@ -37,7 +37,7 @@ static int resetPacket(AVPacket * packet, AVPacket * pkt)
 		memcpy(pkt->data + sei_packet_size, packet->data, packet->size);
 		//填充自定义数据
 		unsigned char * sei = (unsigned char*)pkt->data;
-		fill_sei_packet(sei, isAnnexb, buffer, len);
+		fill_sei_packet(sei, isAnnexb, TIME_STAMP_UUID, (const uint8_t*)buffer, len);
 	}
 	else
 	{
@@ -45,7 +45,7 @@ static int resetPacket(AVPacket * packet, AVPacket * pkt)
 		memcpy(pkt->data, packet->data, packet->size);
 		//填充自定义数据
 		unsigned char * sei = (unsigned char*)pkt->data + packet->size;
-		fill_sei_packet(sei, isAnnexb, buffer, len);
+		fill_sei_packet(sei, isAnnexb, TIME_STAMP_UUID,(const uint8_t*)buffer, len);
 	}
 	
 

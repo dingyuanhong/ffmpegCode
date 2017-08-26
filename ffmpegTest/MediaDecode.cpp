@@ -312,13 +312,13 @@ int MediaDecode::decode(uint8_t * data, int32_t size)
         packet.data = data;
         packet.size = size;
 
-        char buffer[256] = {0};
+        uint8_t *buffer = NULL;
         int count = 256;
-        ret = get_sei_content(data,size,buffer,&count);
+        ret = get_sei_content(data,size, TIME_STAMP_UUID,&buffer,&count);
 #ifndef _WIN32
 //        __android_log_print(ANDROID_LOG_DEBUG,"JNI-DECODER","buffer = %s",buffer);
 #endif
-        if(ret > 0)
+        if(buffer != NULL)
         {
             int cflags = 0;
             int64_t cpts = 0;
@@ -327,7 +327,7 @@ int MediaDecode::decode(uint8_t * data, int32_t size)
             int ctime_base_num = 0;
             int ctime_base_den = 0;
 
-            sscanf(buffer,"flags:%d pts:%llu dts:%llu timestamp:%llu time_base:num:%d den:%d",
+            sscanf((const char*)buffer,"flags:%d pts:%llu dts:%llu timestamp:%llu time_base:num:%d den:%d",
                   &cflags,&cpts,&cdts,&ctimestamp,&ctime_base_num,&ctime_base_den);
 
             time_base.den = ctime_base_den;
@@ -341,6 +341,8 @@ int MediaDecode::decode(uint8_t * data, int32_t size)
             packet.pts = cpts;
             packet.dts = cdts;
             packet.flags = cflags;
+
+			free_sei_content(&buffer);
 #ifndef _WIN32
 //            __android_log_print(ANDROID_LOG_DEBUG,"JNI-DECODER","pts:%lld dts:%lld",cpts,cdts);
 #endif

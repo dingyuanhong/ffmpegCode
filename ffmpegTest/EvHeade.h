@@ -1,6 +1,7 @@
 #ifdef __cplusplus
 
 #include "../EvoInterface/EvoHeader.h"
+#include "../EvoInterface/sei_packet.h"
 
 #ifdef _WIN32
 

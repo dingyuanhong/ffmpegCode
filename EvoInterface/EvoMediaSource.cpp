@@ -262,7 +262,7 @@ int EvoMediaSource::ReadFrame(EvoFrame** out)
 						sprintf(sei_buf,"flags:%d pts:%llu dts:%llu timestamp:%llu time_base:num:%d den:%d",
 							packet_->flags,packet_->pts, packet_->dts, timestamp, videoStream_->time_base.num, videoStream_->time_base.den);
 						size_t len = strlen(sei_buf);
-						size_t sei_len = get_sei_packet_size(len);
+						size_t sei_len = get_sei_packet_size((const uint8_t*)sei_buf,len);
 
 						if (!Config_.UseSei)
 						{
@@ -281,7 +281,7 @@ int EvoMediaSource::ReadFrame(EvoFrame** out)
 
 						if (Config_.UseSei) {
 							//填充sei信息
-							fill_sei_packet(frame->data + packet_->size, annexb, sei_buf, len);
+							fill_sei_packet(frame->data + packet_->size, annexb, TIME_STAMP_UUID, (const uint8_t*)sei_buf, len);
 						}
 						if (!annexb && Config_.UseAnnexb)
 						{

@@ -1,6 +1,5 @@
 #pragma once
 #include "EvHeade.h"
-#include "sei_packet.h"
 
 inline AVFormatContext * avOpenFile(const char * file)
 {
@@ -73,7 +72,7 @@ inline int resetVideoPacket(AVPacket * packet, AVPacket * pkt)
 	int sei_size = strlen(buffer);
 	char * sei_data = buffer;
 	//获取自定义数据长度
-	size_t sei_packet_size = get_sei_packet_size(sei_size);
+	size_t sei_packet_size = get_sei_packet_size((const uint8_t*)buffer,sei_size);
 
 	av_new_packet(pkt, packet->size + (int)sei_packet_size);
 	memset(pkt->data, 0, packet->size + sei_packet_size);
@@ -92,7 +91,7 @@ inline int resetVideoPacket(AVPacket * packet, AVPacket * pkt)
 		memcpy(pkt->data + sei_packet_size, packet->data, packet->size);
 		//填充自定义数据
 		unsigned char * sei = (unsigned char*)pkt->data;
-		fill_sei_packet(sei, isAnnexb, sei_data, sei_size);
+		fill_sei_packet(sei, isAnnexb, TIME_STAMP_UUID,(const uint8_t*)sei_data, sei_size);
 	}
 	else
 	{
@@ -101,7 +100,7 @@ inline int resetVideoPacket(AVPacket * packet, AVPacket * pkt)
 
 		//填充自定义数据
 		unsigned char * sei = (unsigned char*)pkt->data + packet->size;
-		fill_sei_packet(sei, isAnnexb, sei_data, sei_size);
+		fill_sei_packet(sei, isAnnexb, TIME_STAMP_UUID, (const uint8_t*) sei_data, sei_size);
 	}
 
 	return 0;

@@ -102,22 +102,32 @@ int Encode::NewVideoStream(int width,int height, AVPixelFormat format,int frameR
 	codecCtx->width = width;
 	codecCtx->height = height;
 
-	//设置码率
-	codecCtx->bit_rate = 40000000;
-	codecCtx->rc_max_rate = 40000000;
-	codecCtx->rc_min_rate = 400000;
-	//codecCtx->gop_size = 250;
-
 	//设置时间戳时间基准
 	codecCtx->time_base.num = 1;
 	codecCtx->time_base.den = frameRate;
 
-	//H264  
-	//codecCtx->me_range = 16;  
-	//codecCtx->max_qdiff = 4;  
-	//codecCtx->qcompress = 0.6;  
+	int bitrate = 10 * 1024 * 1024 * 8;
+	//设置码率
+	codecCtx->flags |= CODEC_FLAG_QSCALE; //动态码率
+	codecCtx->flags |= CODEC_FLAG_GLOBAL_HEADER; //放置全巨头在extradata代替每一帧关键帧上
+
+	codecCtx->bit_rate = bitrate;
+	codecCtx->rc_max_rate = bitrate;
+	codecCtx->rc_min_rate = bitrate;
+	codecCtx->rc_buffer_size = bitrate;
+	codecCtx->bit_rate_tolerance = bitrate;
+	codecCtx->rc_initial_buffer_occupancy = bitrate * 3 / 4;
+
+	//关键H264参数
+	codecCtx->gop_size = 250;
+	codecCtx->max_b_frames = 5;
 	codecCtx->qmin = 10;
 	codecCtx->qmax = 51;
+
+	/*codecCtx->me_range = 16;
+	codecCtx->max_qdiff = 4;
+	codecCtx->qcompress = 0.6;
+	codecCtx->b_quant_factor = 1.25;*/
 
 	//Optional Param  
 	codecCtx->max_b_frames = 3;
@@ -186,15 +196,37 @@ int Encode::NewVideoStream(AVStream * stream)
 #endif
 	codecCtx->time_base = stream->r_frame_rate;
 	codecCtx->codec_id = output_->video_codec;
-	
+
+	int bitrate = 10 * 1024 * 1024 * 8;
+	//设置码率
+	codecCtx->flags |= CODEC_FLAG_QSCALE; //动态码率
+	codecCtx->flags |= CODEC_FLAG_GLOBAL_HEADER; //放置全巨头在extradata代替每一帧关键帧上
+
+	codecCtx->bit_rate = bitrate;
+	codecCtx->rc_max_rate = bitrate;
+	codecCtx->rc_min_rate = bitrate;
+	codecCtx->rc_buffer_size = bitrate;
+	codecCtx->bit_rate_tolerance = bitrate;
+	codecCtx->rc_initial_buffer_occupancy = bitrate * 3 / 4;
+
+	//H264参数
+	codecCtx->gop_size = 250;
+	codecCtx->max_b_frames = 5;
+	codecCtx->qmin = 10;
+	codecCtx->qmax = 51;
+
+	/*codecCtx->me_range = 0;
+	codecCtx->max_qdiff = 3;
+	codecCtx->qcompress = 0.5;
+	codecCtx->b_quant_factor = 1.25;*/
+
 	// Set Option  
 	AVDictionary *param = NULL;
 
 	if (codecCtx->codec_id == AV_CODEC_ID_H264) {
 		av_dict_set(&param, "preset", "slow", 0);
 		av_dict_set(&param, "tune", "zerolatency", 0);
-		av_dict_set(&param, "profile", "baseline", 0);
-		av_dict_set(&param, "qp", "0", 0);
+		av_dict_set(&param, "profile", "main", 0);
 	}
 	//H.265  
 	if (codecCtx->codec_id == AV_CODEC_ID_H265) {
@@ -248,7 +280,9 @@ int Encode::NewAudioStream(enum AVSampleFormat format,int smapleRate, uint64_t c
 	codecCtx->channel_layout = channel_layout;
 	codecCtx->channels = av_get_channel_layout_nb_channels(codecCtx->channel_layout);
 
-	codecCtx->bit_rate = 64000;
+	codecCtx->bit_rate = 1 * 1024 * 1024 * 8;
+	codecCtx->rc_max_rate = 1 * 1024 * 1024 * 8;
+	codecCtx->rc_min_rate = 1 * 1024 * 1024 * 8;
 	codecCtx->gop_size = 250;
 
 	codecCtx->time_base.num = 1;
@@ -308,7 +342,11 @@ int Encode::NewAudioStream(AVStream * stream)
 #endif
 	codecCtx->time_base = stream->r_frame_rate;
 	codecCtx->codec_id = output_->audio_codec;
-	
+
+	codecCtx->bit_rate = 1 * 1024 * 1024 * 8;
+	codecCtx->rc_max_rate = 1 * 1024 * 1024 * 8;
+	codecCtx->rc_min_rate = 1 * 1024 * 1024 * 8;
+
 	// Set Option  
 	AVDictionary *param = NULL;
 	audioCodec_ = avcodec_find_encoder(codecCtx->codec_id);

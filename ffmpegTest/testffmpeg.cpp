@@ -46,12 +46,13 @@ inline int testFFmpeg(const char * file)
 					av_frame_unref(frame);
 				}
 				//取出自定义数据
-				char selfPacket[255] = { 0 };
-				int count = 255;
-				ret = get_sei_content(packet->data, packet->size, selfPacket, &count);
-				if (ret > 0)
+				uint8_t *selfPacket = NULL;
+				int32_t count = 0;
+				ret = get_sei_content(packet->data, packet->size, TIME_STAMP_UUID, &selfPacket, &count);
+				if (selfPacket != NULL)
 				{
 					printf("sei: %s\n", selfPacket);
+					free_sei_content(&selfPacket);
 				}
 
 				av_packet_unref(pkt);
