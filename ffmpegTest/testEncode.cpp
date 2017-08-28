@@ -5,7 +5,7 @@
 #include "SEIEncode.h"
 #include "exterlFunction.h"
 
-//file = "../1.mp4"
+//file = "../1.yuv"
 inline int testEncode(const char * infile,const char * outfile)
 {
 	int in_w = 480, in_h = 272;                              //Input data's width and height  

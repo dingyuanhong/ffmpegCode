@@ -1,6 +1,8 @@
 #ifdef __cplusplus
 
 #include "../EvoInterface/EvoHeader.h"
+#include "../EvoInterface/EvoMediaSource.h"
+#include "../EvoInterface/VideoDecoder.h"
 #include "../EvoInterface/sei_packet.h"
 
 #ifdef _WIN32

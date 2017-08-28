@@ -57,6 +57,24 @@
     <ClCompile Include="testConvert.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="testHead.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="testInterface.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="testDecode.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="testDecodePath.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="testDecodeSEI.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="testMP4Encode.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Encode.h">

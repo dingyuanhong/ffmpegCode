@@ -165,12 +165,18 @@
     <ClCompile Include="SEIEncode.cpp" />
     <ClCompile Include="SourceTest.cpp" />
     <ClCompile Include="testConvert.cpp" />
+    <ClCompile Include="testDecode.cpp" />
+    <ClCompile Include="testDecodePath.cpp" />
+    <ClCompile Include="testDecodeSEI.cpp" />
     <ClCompile Include="testEncode.cpp" />
     <ClCompile Include="testEncode2.cpp" />
     <ClCompile Include="testffmpeg.cpp" />
     <ClCompile Include="testFFmpegIO.cpp" />
     <ClCompile Include="testFLV.cpp" />
+    <ClCompile Include="testHead.cpp" />
+    <ClCompile Include="testInterface.cpp" />
     <ClCompile Include="testMeidaControl.cpp" />
+    <ClCompile Include="testMP4Encode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Encode.h" />
