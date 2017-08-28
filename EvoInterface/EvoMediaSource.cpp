@@ -179,6 +179,14 @@ int EvoMediaSource::Open(const char * file, EvoMediaSourceConfig *config, enum A
 
 void EvoMediaSource::Close()
 {
+	if (codecContext_ != NULL)
+	{
+		avcodec_close(this->codecContext_);
+#ifdef USE_NEW_API
+		avcodec_free_context(&codecContext_);
+#endif
+		this->codecContext_ = NULL;
+	}
 	if (context_ != NULL)
 	{
 		avformat_close_input(&context_);
@@ -191,14 +199,6 @@ void EvoMediaSource::Close()
 		av_free_packet(packet_);
 #endif
 		av_freep(packet_);
-	}
-	if (codecContext_ != NULL)
-	{
-		avcodec_close(this->codecContext_);
-#ifdef USE_NEW_API
-		avcodec_free_context(&codecContext_);
-#endif
-		this->codecContext_ = NULL;
 	}
 	context_ = NULL;
 	packet_ = NULL;
