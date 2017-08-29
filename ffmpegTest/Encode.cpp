@@ -113,6 +113,12 @@ int Encode::NewVideoStream(AVStream * stream)
 	codecCtx->codec_tag = 0;
 	codecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
 
+	if ((codecCtx->flags & CODEC_FLAG_GLOBAL_HEADER ) != CODEC_FLAG_GLOBAL_HEADER)
+	{
+		AVOutputFormat *of = formatCtx_->oformat;
+		of->flags &= ~AVFMT_GLOBALHEADER;
+	}
+
 	return 0;
 }
 
@@ -155,6 +161,12 @@ int Encode::NewAudioStream(AVStream * stream)
 	codecCtx->codec_id = output_->audio_codec;
 	codecCtx->codec_tag = 0;
 	codecCtx->codec_type = AVMEDIA_TYPE_AUDIO;
+
+	if ((codecCtx->flags & CODEC_FLAG_GLOBAL_HEADER) != CODEC_FLAG_GLOBAL_HEADER)
+	{
+		AVOutputFormat *of = formatCtx_->oformat;
+		of->flags &= ~AVFMT_GLOBALHEADER;
+	}
 
 	return 0;
 }
@@ -442,9 +454,15 @@ int OriginalEncode::NewVideoStream(int width, int height, AVPixelFormat format, 
 	codecCtx->time_base.den = frameRate;
 
 	int bitrate = 10 * 1024 * 1024 * 8;
+
 	//设置码率
+	AVOutputFormat *of = formatCtx_->oformat;
+	if (of != NULL && of->flags & AVFMT_GLOBALHEADER)
+	{
+		codecCtx->flags |= CODEC_FLAG_GLOBAL_HEADER; //放置全巨头在extradata代替每一帧关键帧上
+	}
 	codecCtx->flags |= CODEC_FLAG_QSCALE; //动态码率
-	codecCtx->flags |= CODEC_FLAG_GLOBAL_HEADER; //放置全巨头在extradata代替每一帧关键帧上
+	
 
 	codecCtx->bit_rate = bitrate;
 	codecCtx->rc_max_rate = bitrate;
@@ -503,7 +521,12 @@ int OriginalEncode::NewVideoStream(AVStream * stream)
 	}
 	AVCodecContext* codecCtx = videoCodecCtx_;
 
-	////设置码率
+	//设置码率
+	AVOutputFormat *of = formatCtx_->oformat;
+	if (of != NULL && of->flags & AVFMT_GLOBALHEADER)
+	{
+		codecCtx->flags |= CODEC_FLAG_GLOBAL_HEADER; //放置全巨头在extradata代替每一帧关键帧上
+	}
 	codecCtx->flags |= CODEC_FLAG_QSCALE; //动态码率
 
 	//H264参数
@@ -580,6 +603,14 @@ int OriginalEncode::NewAudioStream(enum AVSampleFormat format, int smapleRate, u
 	codecCtx->time_base.num = 1;
 	codecCtx->time_base.den = smapleRate;
 
+	//设置码率
+	AVOutputFormat *of = formatCtx_->oformat;
+	if (of != NULL && of->flags & AVFMT_GLOBALHEADER)
+	{
+		codecCtx->flags |= CODEC_FLAG_GLOBAL_HEADER; //放置全巨头在extradata代替每一帧关键帧上
+	}
+	codecCtx->flags |= CODEC_FLAG_QSCALE; //动态码率
+
 	int bitrate = 1 * 1024 * 1024 * 8;
 
 	codecCtx->bit_rate = bitrate;
@@ -616,6 +647,14 @@ int OriginalEncode::NewAudioStream(AVStream * stream)
 		return -1;
 	}
 	AVCodecContext* codecCtx = audioCodecCtx_;
+
+	//设置码率
+	AVOutputFormat *of = formatCtx_->oformat;
+	if (of != NULL && of->flags & AVFMT_GLOBALHEADER)
+	{
+		codecCtx->flags |= CODEC_FLAG_GLOBAL_HEADER; //放置全巨头在extradata代替每一帧关键帧上
+	}
+	codecCtx->flags |= CODEC_FLAG_QSCALE; //动态码率
 
 	/*int bitrate = 1 * 1024 * 1024 * 8;
 

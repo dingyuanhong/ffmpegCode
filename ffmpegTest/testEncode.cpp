@@ -23,7 +23,12 @@ inline int testEncode(const char * infile,const char * outfile)
 	{
 		return -1;
 	}
-	encode.WriteHeader();
+	ret = encode.WriteHeader();
+	if (ret != 0)
+	{
+		//Ð´Í·Ê§°Ü
+		return -1;
+	}
 
 	FILE *in_file = fopen(infile, "rb");   //Input raw YUV data  
 

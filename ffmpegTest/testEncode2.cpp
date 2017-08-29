@@ -32,7 +32,7 @@ inline int testEncode2(const char * infile,const char * outfile)
 		return -1;
 	}
 
-	OriginalEncode encode;
+	SEIEncode encode;
 	int ret = encode.Open(outfile);
 	if (ret != 0)
 	{
