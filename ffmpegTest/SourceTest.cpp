@@ -23,16 +23,16 @@ int main()
 	char * pathNV12 = "../nv_temp/";
 	char * pathYUV = "/yuv_temp/";
 
-	char * infile = "../output.mp4";
+	char * infile = "../Vid0616000023.mp4";
 	char * infile_h264 = "../video.h264";
 	char * infile_yuv = "../ds_480x272.yuv";
 	char * infile_mp4 = "../Vid0616000023.mp4";
 	char * outfile = "../1.mp4";
-	return testConvert(pathNV12, pathYUV);
-	return testDecode(infile);
-	return testDecodePath(inpath);
-	return testDecodeSEI(infile_mp4);
-	return testEncode(infile_yuv, outfile);
+	//return testConvert(pathNV12, pathYUV);
+	//return testDecode(infile);
+	//return testDecodePath(inpath);
+	//return testDecodeSEI(infile_mp4);
+	//return testEncode(infile_yuv, outfile);
 	return testEncode2(infile, outfile);
 	return testFFmpeg(infile);
 	return testFFmpegIO(inpath);

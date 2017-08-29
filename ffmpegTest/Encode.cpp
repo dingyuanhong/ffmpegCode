@@ -70,96 +70,6 @@ int Encode::Open(const char * file)
 	return 0;
 }
 
-int Encode::NewVideoStream(int width,int height, AVPixelFormat format,int frameRate)
-{
-	videoStream_ = avformat_new_stream(formatCtx_, NULL);
-
-	if (videoStream_ == NULL) {
-		return -1;
-	}
-	videoStream_->time_base.num = 1;
-	videoStream_->time_base.den = frameRate;
-
-	if (videoCodecCtx_) {
-		avcodec_close(videoCodecCtx_);
-#ifdef USE_NEW_API
-		avcodec_free_context(&videoCodecCtx_);
-#endif
-		videoCodecCtx_ = NULL;
-	}
-#ifdef USE_NEW_API
-	videoCodecCtx_ = CreateCodecContent(videoStream_->codecpar);
-#else
-	//Param that must set  
-	videoCodecCtx_ = videoStream_->codec;
-#endif
-	AVCodecContext* codecCtx = videoCodecCtx_;
-
-	//codecCtx->codec_id =AV_CODEC_ID_HEVC;  
-	codecCtx->codec_id = output_->video_codec;
-	codecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
-	codecCtx->pix_fmt = format;
-	codecCtx->width = width;
-	codecCtx->height = height;
-
-	//设置时间戳时间基准
-	codecCtx->time_base.num = 1;
-	codecCtx->time_base.den = frameRate;
-
-	int bitrate = 10 * 1024 * 1024 * 8;
-	//设置码率
-	codecCtx->flags |= CODEC_FLAG_QSCALE; //动态码率
-	codecCtx->flags |= CODEC_FLAG_GLOBAL_HEADER; //放置全巨头在extradata代替每一帧关键帧上
-
-	codecCtx->bit_rate = bitrate;
-	codecCtx->rc_max_rate = bitrate;
-	codecCtx->rc_min_rate = bitrate;
-	codecCtx->rc_buffer_size = bitrate;
-	codecCtx->bit_rate_tolerance = bitrate;
-	codecCtx->rc_initial_buffer_occupancy = bitrate * 3 / 4;
-
-	//关键H264参数
-	codecCtx->gop_size = 250;
-	codecCtx->max_b_frames = 5;
-	codecCtx->qmin = 10;
-	codecCtx->qmax = 51;
-
-	/*codecCtx->me_range = 16;
-	codecCtx->max_qdiff = 4;
-	codecCtx->qcompress = 0.6;
-	codecCtx->b_quant_factor = 1.25;*/
-
-	//Optional Param  
-	codecCtx->max_b_frames = 3;
-	//codecCtx->thread_count = 1;
-
-	// Set Option  
-	AVDictionary *param = NULL;
-
-	if(codecCtx->codec_id == AV_CODEC_ID_H264) {
-		av_dict_set(&param, "preset", "slow", 0);
-		av_dict_set(&param, "tune", "zerolatency", 0);
-		av_dict_set(&param, "profile", "main", 0);
-	}
-	//H.265  
-	if (codecCtx->codec_id == AV_CODEC_ID_H265) {
-		av_dict_set(&param, "preset", "ultrafast", 0);
-		av_dict_set(&param, "tune", "zero-latency", 0);
-	}
-
-	videoCodec_ = avcodec_find_encoder(codecCtx->codec_id);
-	if (!videoCodec_) {
-		printf("Can not find encoder! \n");
-		return -1;
-	}
-	if (avcodec_open2(codecCtx, videoCodec_, param == NULL ? NULL : &param) != 0) {
-		printf("Failed to open encoder! \n");
-		return -1;
-	}
-
-	return 0;
-}
-
 int Encode::NewVideoStream(AVStream * stream)
 {
 	if (stream == NULL)
@@ -173,6 +83,10 @@ int Encode::NewVideoStream(AVStream * stream)
 		return -1;
 	}
 	videoStream_->time_base = stream->time_base;
+	//帧率
+	videoStream_->r_frame_rate = stream->r_frame_rate;
+	videoStream_->start_time = stream->start_time;
+	videoStream_->avg_frame_rate = stream->avg_frame_rate;
 
 	if (videoCodecCtx_) {
 		avcodec_close(videoCodecCtx_);
@@ -194,118 +108,11 @@ int Encode::NewVideoStream(AVStream * stream)
 #else
 	avcodec_copy_context(codecCtx, stream->codec);
 #endif
-	codecCtx->time_base = stream->r_frame_rate;
+
 	codecCtx->codec_id = output_->video_codec;
+	codecCtx->codec_tag = 0;
+	codecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
 
-	int bitrate = 10 * 1024 * 1024 * 8;
-	//设置码率
-	codecCtx->flags |= CODEC_FLAG_QSCALE; //动态码率
-	codecCtx->flags |= CODEC_FLAG_GLOBAL_HEADER; //放置全巨头在extradata代替每一帧关键帧上
-
-	codecCtx->bit_rate = bitrate;
-	codecCtx->rc_max_rate = bitrate;
-	codecCtx->rc_min_rate = bitrate;
-	codecCtx->rc_buffer_size = bitrate;
-	codecCtx->bit_rate_tolerance = bitrate;
-	codecCtx->rc_initial_buffer_occupancy = bitrate * 3 / 4;
-
-	//H264参数
-	codecCtx->gop_size = 250;
-	codecCtx->max_b_frames = 5;
-	codecCtx->qmin = 10;
-	codecCtx->qmax = 51;
-
-	/*codecCtx->me_range = 0;
-	codecCtx->max_qdiff = 3;
-	codecCtx->qcompress = 0.5;
-	codecCtx->b_quant_factor = 1.25;*/
-
-	// Set Option  
-	AVDictionary *param = NULL;
-
-	if (codecCtx->codec_id == AV_CODEC_ID_H264) {
-		av_dict_set(&param, "preset", "slow", 0);
-		av_dict_set(&param, "tune", "zerolatency", 0);
-		av_dict_set(&param, "profile", "main", 0);
-	}
-	//H.265  
-	if (codecCtx->codec_id == AV_CODEC_ID_H265) {
-		av_dict_set(&param, "preset", "ultrafast", 0);
-		av_dict_set(&param, "tune", "zero-latency", 0);
-	}
-
-	videoCodec_ = avcodec_find_encoder(codecCtx->codec_id);
-	if (!videoCodec_) {
-		printf("Can not find encoder! \n");
-		return -1;
-	}
-	if (avcodec_open2(codecCtx, videoCodec_, param == NULL ? NULL : &param) != 0) {
-		printf("Failed to open encoder! \n");
-		return -1;
-	}
-	return 0;
-}
-
-int Encode::NewAudioStream(enum AVSampleFormat format,int smapleRate, uint64_t channel_layout)
-{
-	audioStream_ = avformat_new_stream(formatCtx_, NULL);
-
-	if (audioStream_ == NULL) {
-		return -1;
-	}
-	audioStream_->time_base.num = 1;
-	audioStream_->time_base.den = 0;
-
-	if (audioCodecCtx_) {
-		avcodec_close(audioCodecCtx_);
-#ifdef USE_NEW_API
-		avcodec_free_context(&audioCodecCtx_);
-#endif
-		audioCodecCtx_ = NULL;
-	}
-#ifdef USE_NEW_API
-	audioCodecCtx_ = CreateCodecContent(audioStream_->codecpar);
-#else
-	//Param that must set  
-	audioCodecCtx_ = audioStream_->codec;
-#endif
-	AVCodecContext* codecCtx = audioCodecCtx_;
-
-	//codecCtx->codec_id =AV_CODEC_ID_HEVC;  
-	codecCtx->codec_id = output_->audio_codec;
-	codecCtx->codec_type = AVMEDIA_TYPE_AUDIO;
-	
-	codecCtx->sample_fmt = format ;
-	codecCtx->sample_rate = 44100;
-	codecCtx->channel_layout = channel_layout;
-	codecCtx->channels = av_get_channel_layout_nb_channels(codecCtx->channel_layout);
-
-	codecCtx->bit_rate = 1 * 1024 * 1024 * 8;
-	codecCtx->rc_max_rate = 1 * 1024 * 1024 * 8;
-	codecCtx->rc_min_rate = 1 * 1024 * 1024 * 8;
-	codecCtx->gop_size = 250;
-
-	codecCtx->time_base.num = 1;
-	codecCtx->time_base.den = 1000;
-
-	codecCtx->qmin = 10;
-	codecCtx->qmax = 51;
-
-	//Optional Param  
-	codecCtx->max_b_frames = 3;
-	//videoCodecCtx_->thread_count = 1;
-
-	// Set Option  
-	AVDictionary *param = NULL;
-	audioCodec_ = avcodec_find_encoder(codecCtx->codec_id);
-	if (!audioCodec_) {
-		printf("Can not find encoder! \n");
-		return -1;
-	}
-	if (avcodec_open2(codecCtx, audioCodec_, param ==NULL? NULL : &param) != 0) {
-		printf("Failed to open encoder! \n");
-		return -1;
-	}
 	return 0;
 }
 
@@ -319,6 +126,10 @@ int Encode::NewAudioStream(AVStream * stream)
 		return -1;
 	}
 	audioStream_->time_base = stream->time_base;
+	//帧率
+	audioStream_->r_frame_rate = stream->r_frame_rate;
+	audioStream_->start_time = stream->start_time;
+	audioStream_->avg_frame_rate = stream->avg_frame_rate;
 
 	if (audioCodecCtx_) {
 		avcodec_close(audioCodecCtx_);
@@ -340,24 +151,11 @@ int Encode::NewAudioStream(AVStream * stream)
 #else
 	avcodec_copy_context(codecCtx, stream->codec);
 #endif
-	codecCtx->time_base = stream->r_frame_rate;
+
 	codecCtx->codec_id = output_->audio_codec;
+	codecCtx->codec_tag = 0;
+	codecCtx->codec_type = AVMEDIA_TYPE_AUDIO;
 
-	codecCtx->bit_rate = 1 * 1024 * 1024 * 8;
-	codecCtx->rc_max_rate = 1 * 1024 * 1024 * 8;
-	codecCtx->rc_min_rate = 1 * 1024 * 1024 * 8;
-
-	// Set Option  
-	AVDictionary *param = NULL;
-	audioCodec_ = avcodec_find_encoder(codecCtx->codec_id);
-	if (!audioCodec_) {
-		printf("Can not find encoder! \n");
-		return -1;
-	}
-	if (avcodec_open2(codecCtx, audioCodec_, param == NULL ? NULL : &param) != 0) {
-		printf("Failed to open encoder! \n");
-		return -1;
-	}
 	return 0;
 }
 
@@ -594,4 +392,256 @@ AVStream* OriginalEncode::GetAudioStream()
 AVCodecContext* OriginalEncode::GetAudioContext()
 {
 	return audioCodecCtx_;
+}
+
+int OriginalEncode::NewVideoStream(int width, int height, AVPixelFormat format, int frameRate)
+{
+	videoStream_ = avformat_new_stream(formatCtx_, NULL);
+
+	if (videoStream_ == NULL) {
+		return -1;
+	}
+	//无需设置
+	videoStream_->time_base.num = 1;
+	videoStream_->time_base.den = frameRate;
+
+	//帧率
+	videoStream_->r_frame_rate.num = frameRate;
+	videoStream_->r_frame_rate.den = 1;
+	videoStream_->avg_frame_rate.num = frameRate;
+	videoStream_->avg_frame_rate.den = 1;
+	videoStream_->start_time = 0;
+
+	if (videoCodecCtx_) {
+		avcodec_close(videoCodecCtx_);
+#ifdef USE_NEW_API
+		avcodec_free_context(&videoCodecCtx_);
+#endif
+		videoCodecCtx_ = NULL;
+	}
+#ifdef USE_NEW_API
+	videoCodecCtx_ = CreateCodecContent(videoStream_->codecpar);
+#else
+	//Param that must set  
+	videoCodecCtx_ = videoStream_->codec;
+#endif
+	AVCodecContext* codecCtx = videoCodecCtx_;
+
+	//codecCtx->codec_id =AV_CODEC_ID_HEVC;  
+	codecCtx->codec_id = output_->video_codec;
+	codecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
+
+	codecCtx->pix_fmt = format;
+	codecCtx->width = width;
+	codecCtx->height = height;
+
+	codecCtx->framerate.num = frameRate;
+	codecCtx->framerate.den = 1;
+	//设置时间戳时间基准
+	codecCtx->time_base.num = 1;
+	codecCtx->time_base.den = frameRate;
+
+	int bitrate = 10 * 1024 * 1024 * 8;
+	//设置码率
+	codecCtx->flags |= CODEC_FLAG_QSCALE; //动态码率
+	codecCtx->flags |= CODEC_FLAG_GLOBAL_HEADER; //放置全巨头在extradata代替每一帧关键帧上
+
+	codecCtx->bit_rate = bitrate;
+	codecCtx->rc_max_rate = bitrate;
+	codecCtx->rc_min_rate = bitrate;
+	codecCtx->rc_buffer_size = bitrate;
+	codecCtx->bit_rate_tolerance = bitrate;
+	codecCtx->rc_initial_buffer_occupancy = bitrate * 3 / 4;
+
+	//关键H264参数
+	codecCtx->gop_size = 250;
+	codecCtx->qmin = 10;
+	codecCtx->qmax = 51;
+
+	/*codecCtx->me_range = 16;
+	codecCtx->max_qdiff = 4;
+	codecCtx->qcompress = 0.6;
+	codecCtx->b_quant_factor = 1.25;*/
+
+	//Optional Param  
+	codecCtx->max_b_frames = 0;
+	codecCtx->has_b_frames = 0;
+	//codecCtx->thread_count = 1;
+
+	// Set Option  
+	AVDictionary *param = NULL;
+
+	if (codecCtx->codec_id == AV_CODEC_ID_H264) {
+		av_dict_set(&param, "preset", "slow", 0);
+		av_dict_set(&param, "tune", "zerolatency", 0);
+		av_dict_set(&param, "profile", "main", 0);
+	}
+	//H.265  
+	if (codecCtx->codec_id == AV_CODEC_ID_H265) {
+		av_dict_set(&param, "preset", "ultrafast", 0);
+		av_dict_set(&param, "tune", "zero-latency", 0);
+	}
+
+	videoCodec_ = avcodec_find_encoder(codecCtx->codec_id);
+	if (!videoCodec_) {
+		printf("Can not find encoder! \n");
+		return -1;
+	}
+	if (avcodec_open2(codecCtx, videoCodec_, param == NULL ? NULL : &param) != 0) {
+		printf("Failed to open encoder! \n");
+		return -1;
+	}
+
+	return 0;
+}
+
+int OriginalEncode::NewVideoStream(AVStream * stream)
+{
+	if (Encode::NewVideoStream(stream) != 0)
+	{
+		return -1;
+	}
+	AVCodecContext* codecCtx = videoCodecCtx_;
+
+	////设置码率
+	codecCtx->flags |= CODEC_FLAG_QSCALE; //动态码率
+
+	//H264参数
+	codecCtx->gop_size = 250;
+	codecCtx->max_b_frames = 5;
+	codecCtx->qmin = 10;
+	codecCtx->qmax = 51;
+
+	/*codecCtx->me_range = 0;
+	codecCtx->max_qdiff = 3;
+	codecCtx->qcompress = 0.5;
+	codecCtx->b_quant_factor = 1.25;*/
+
+	// Set Option  
+	AVDictionary *param = NULL;
+
+	if (codecCtx->codec_id == AV_CODEC_ID_H264) {
+		av_dict_set(&param, "preset", "slow", 0);
+		av_dict_set(&param, "tune", "zerolatency", 0);
+		av_dict_set(&param, "profile", "main", 0);
+	}
+	//H.265  
+	if (codecCtx->codec_id == AV_CODEC_ID_H265) {
+		av_dict_set(&param, "preset", "ultrafast", 0);
+		av_dict_set(&param, "tune", "zero-latency", 0);
+	}
+
+	videoCodec_ = avcodec_find_encoder(codecCtx->codec_id);
+	if (!videoCodec_) {
+		printf("Can not find encoder! \n");
+		return -1;
+	}
+	if (avcodec_open2(codecCtx, videoCodec_, param == NULL ? NULL : &param) != 0) {
+		printf("Failed to open encoder! \n");
+		return -1;
+	}
+	return 0;
+}
+
+int OriginalEncode::NewAudioStream(enum AVSampleFormat format, int smapleRate, uint64_t channel_layout, int frameSize)
+{
+	audioStream_ = avformat_new_stream(formatCtx_, NULL);
+
+	if (audioStream_ == NULL) {
+		return -1;
+	}
+	audioStream_->time_base.num = 1;
+	audioStream_->time_base.den = smapleRate;
+
+	if (audioCodecCtx_) {
+		avcodec_close(audioCodecCtx_);
+#ifdef USE_NEW_API
+		avcodec_free_context(&audioCodecCtx_);
+#endif
+		audioCodecCtx_ = NULL;
+	}
+#ifdef USE_NEW_API
+	audioCodecCtx_ = CreateCodecContent(audioStream_->codecpar);
+#else
+	//Param that must set  
+	audioCodecCtx_ = audioStream_->codec;
+#endif
+	AVCodecContext* codecCtx = audioCodecCtx_;
+
+	codecCtx->codec_id = output_->audio_codec;
+	codecCtx->codec_type = AVMEDIA_TYPE_AUDIO;
+
+	codecCtx->sample_fmt = format;
+	codecCtx->sample_rate = smapleRate;
+	codecCtx->channel_layout = channel_layout;
+	codecCtx->channels = av_get_channel_layout_nb_channels(codecCtx->channel_layout);
+	codecCtx->frame_size = frameSize;
+
+	codecCtx->time_base.num = 1;
+	codecCtx->time_base.den = smapleRate;
+
+	int bitrate = 1 * 1024 * 1024 * 8;
+
+	codecCtx->bit_rate = bitrate;
+	/*codecCtx->rc_max_rate = bitrate;
+	codecCtx->rc_min_rate = bitrate;
+	codecCtx->gop_size = 250;
+
+	codecCtx->qmin = 10;
+	codecCtx->qmax = 51;*/
+
+	// Set Option  
+	AVDictionary *param = NULL;
+
+	if (codecCtx->codec_id == AV_CODEC_ID_AAC) {
+		codecCtx->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
+	}
+
+	audioCodec_ = avcodec_find_encoder(codecCtx->codec_id);
+	if (!audioCodec_) {
+		printf("Can not find encoder! \n");
+		return -1;
+	}
+	if (avcodec_open2(codecCtx, audioCodec_, param == NULL ? NULL : &param) != 0) {
+		printf("Failed to open encoder! \n");
+		return -1;
+	}
+	return 0;
+}
+
+int OriginalEncode::NewAudioStream(AVStream * stream)
+{
+	if (Encode::NewAudioStream(stream) != 0)
+	{
+		return -1;
+	}
+	AVCodecContext* codecCtx = audioCodecCtx_;
+
+	/*int bitrate = 1 * 1024 * 1024 * 8;
+
+	codecCtx->bit_rate = bitrate;
+	codecCtx->rc_max_rate = bitrate;
+	codecCtx->rc_min_rate = bitrate;
+	codecCtx->gop_size = 250;
+
+	codecCtx->qmin = 10;
+	codecCtx->qmax = 51;*/
+
+	// Set Option  
+	AVDictionary *param = NULL;
+
+	if (codecCtx->codec_id == AV_CODEC_ID_AAC) {
+		codecCtx->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
+	}
+
+	audioCodec_ = avcodec_find_encoder(codecCtx->codec_id);
+	if (!audioCodec_) {
+		printf("Can not find encoder! \n");
+		return -1;
+	}
+	if (avcodec_open2(codecCtx, audioCodec_, param == NULL ? NULL : &param) != 0) {
+		printf("Failed to open encoder! \n");
+		return -1;
+	}
+	return 0;
 }

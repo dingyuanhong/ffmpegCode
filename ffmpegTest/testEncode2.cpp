@@ -40,30 +40,39 @@ inline int testEncode2(const char * infile,const char * outfile)
 		return -1;
 	}
 
+	AVStream * stream = formatContext->streams[videoIndex];
+
 	if (videoIndex != -1)
 	{
-		encode.NewVideoStream(formatContext->streams[videoIndex]);
+		encode.NewVideoStream(formatContext->streams[videoIndex]);	
+		//encode.NewVideoStream(stream->codec->width, stream->codec->height, stream->codec->pix_fmt,30);
 	}
 	if (audioIndex != -1)
 	{
-		//encode.NewAudioStream(formatContext->streams[audioIndex]);
+		encode.NewAudioStream(formatContext->streams[audioIndex]);
 	}
 
 	int frameRate = 30;
-	encode.WriteHeader();
+	ret = encode.WriteHeader();
+	if (ret != 0)
+	{
+		//Ğ´Í·Ê§°Ü
+		return -1;
+	}
+
 	int videoPtsIndex = 0;
 	int audioPtsIndex = 0;
 	AVPacket * packet = av_packet_alloc();
 	while (true)
 	{
-		int ret = av_read_frame(formatContext, packet);
+		ret = av_read_frame(formatContext, packet);
 		if (ret == 0)
 		{
 			if (packet->stream_index == videoIndex)
 			{
 				if (packet->pts == AV_NOPTS_VALUE)
 				{
-					double timestamp = (1000 / frameRate)*videoPtsIndex * 1000;
+					double timestamp = (1000 / (frameRate*1.0))*videoPtsIndex * 1000;
 					videoPtsIndex++;
 					AVCodecContext * codecCtx = encode.GetVideoContext();
 					int64_t ptsStamp = timestamp/(av_q2d(codecCtx->time_base)*1000);

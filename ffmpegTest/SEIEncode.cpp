@@ -79,8 +79,8 @@ int SEIEncode::EncodeVideo(AVFrame* frame)
 		av_init_packet(pkt);
 
 		resetPacket(&videoPacket_, pkt);
-		//ret = WriteVideo(pkt);
-		ret = WriteVideo(&videoPacket_);
+		ret = WriteVideo(pkt);
+		//ret = WriteVideo(&videoPacket_);
 #ifdef USE_NEW_API
 		av_packet_unref(pkt);
 #else

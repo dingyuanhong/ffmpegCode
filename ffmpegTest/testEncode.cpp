@@ -17,7 +17,8 @@ inline int testEncode(const char * infile,const char * outfile)
 	{
 		return -1;
 	}
-	ret = encode.NewVideoStream(in_w, in_h, AV_PIX_FMT_YUV420P, 10);
+	int frameRate = 5;
+	ret = encode.NewVideoStream(in_w, in_h, AV_PIX_FMT_YUV420P, frameRate);
 	if (ret != 0)
 	{
 		return -1;
@@ -60,7 +61,12 @@ inline int testEncode(const char * infile,const char * outfile)
 		frame->format = codecContext->pix_fmt;
 		//PTS  
 		//pFrame->pts=i;
-		frame->pts = i*(stream->time_base.den) / ((stream->time_base.num) * codecContext->time_base.den);
+		float time = (1 / (frameRate * 1.0));
+		frame->pts = (int64_t)(i * time / (av_q2d(stream->time_base)));
+		/*frame->pts = i * av_q2d(codecContext->time_base) / av_q2d(stream->time_base);
+		frame->pts = av_rescale_q(i,
+			codecContext->time_base,
+			stream->time_base);*/
 
 		encode.EncodeVideo(frame);
 	}
