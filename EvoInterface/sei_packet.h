@@ -19,11 +19,14 @@ uint32_t reversebytes(uint32_t value);
 //检查是否为标准H264
 bool check_is_annexb(uint8_t * packet, int32_t size);
 
+//获取H264类型
+int get_annexb_type(uint8_t * packet, int32_t size);
+
 //获取sei包长度
-int32_t get_sei_packet_size(const uint8_t *data, int32_t size);
+int32_t get_sei_packet_size(const uint8_t *data, int32_t size,int annexbType);
 
 //填充sei数据
-int32_t fill_sei_packet(uint8_t * packet, bool isAnnexb, const uint8_t *uuid, const uint8_t * content, int32_t size);
+int32_t fill_sei_packet(uint8_t * packet, int annexbType, const uint8_t *uuid, const uint8_t * content, int32_t size);
 
 //获取标准H264 sei内容
 int get_annexb_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, uint8_t ** pdata, int32_t *psize);

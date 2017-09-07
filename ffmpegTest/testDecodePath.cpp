@@ -2,6 +2,7 @@
 #include "Encode.h"
 #include "SEIEncode.h"
 #include "exterlFunction.h"
+#include "ImageFile.h"
 
 //std::string path = "../temp_frame/";
 inline int testDecodePath(std::string path)
@@ -53,6 +54,9 @@ inline int testDecodePath(std::string path)
 		}
 		fseek(fp, 0, SEEK_END);
 		int size = ftell(fp);
+		if (size == 0) {
+			continue;
+		}
 		uint8_t * buffer = (uint8_t*)malloc(size);
 		fseek(fp, 0, SEEK_SET);
 		size_t red = fread(buffer, 1, size, fp);
@@ -66,7 +70,7 @@ inline int testDecodePath(std::string path)
 		{
 			printf("%s\n", seibuffer);
 			sscanf((char*)seibuffer, "flags:%d", &flags);
-			free_sei_content(&buffer);
+			free_sei_content(&seibuffer);
 		}
 
 		EvoPacket packet = { 0 };
@@ -77,7 +81,7 @@ inline int testDecodePath(std::string path)
 		if (outFrame != NULL)
 		{
 #ifdef _WIN32
-			//SaveAsBMP(outFrame, outFrame->width, outFrame->height, index, 24);
+			SaveAsBMP(outFrame, outFrame->width, outFrame->height, index, 24);
 #endif
 			FreeAVFrame(&outFrame);
 		}
@@ -87,11 +91,12 @@ inline int testDecodePath(std::string path)
 
 	do
 	{
-		ret = decoder->DecodePacket(NULL, &outFrame);
+		//ret = decoder->DecodePacket(NULL, &outFrame);
 		if (outFrame != NULL)
 		{
 			FreeAVFrame(&outFrame);
 		}
+		break;
 	} while (ret == 1);
 
 	delete decoder;

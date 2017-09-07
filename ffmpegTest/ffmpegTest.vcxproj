@@ -160,6 +160,7 @@
   <ItemGroup>
     <ClCompile Include="Encode.cpp" />
     <ClCompile Include="flv.cpp" />
+    <ClCompile Include="ImageFile.cpp" />
     <ClCompile Include="MediaControl.cpp" />
     <ClCompile Include="MediaDecode.cpp" />
     <ClCompile Include="SEIEncode.cpp" />
@@ -183,6 +184,7 @@
     <ClInclude Include="EvHeade.h" />
     <ClInclude Include="exterlFunction.h" />
     <ClInclude Include="flv.h" />
+    <ClInclude Include="ImageFile.h" />
     <ClInclude Include="MediaControl.h" />
     <ClInclude Include="MediaDecode.h" />
     <ClInclude Include="SEIEncode.h" />

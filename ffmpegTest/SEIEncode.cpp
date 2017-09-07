@@ -4,13 +4,14 @@
 
 static int resetPacket(AVPacket * packet, AVPacket * pkt)
 {
+	int annexb_type =  get_annexb_type(packet->data, packet->size);
 	//生成自定义数据
 	char buffer[256];
 	sprintf(buffer, "pts:%lld dts:%lld", packet->pts, packet->dts);
 
 	size_t len = strlen(buffer);
 	//获取自定义数据长度
-	size_t sei_packet_size = get_sei_packet_size((const uint8_t*)buffer,len);
+	size_t sei_packet_size = get_sei_packet_size((const uint8_t*)buffer,len, annexb_type);
 
 	av_new_packet(pkt, packet->size + (int)sei_packet_size);
 	memset(pkt->data, 0, packet->size + sei_packet_size);
@@ -37,7 +38,7 @@ static int resetPacket(AVPacket * packet, AVPacket * pkt)
 		memcpy(pkt->data + sei_packet_size, packet->data, packet->size);
 		//填充自定义数据
 		unsigned char * sei = (unsigned char*)pkt->data;
-		fill_sei_packet(sei, isAnnexb, TIME_STAMP_UUID, (const uint8_t*)buffer, len);
+		fill_sei_packet(sei, annexb_type, TIME_STAMP_UUID, (const uint8_t*)buffer, len);
 	}
 	else
 	{
@@ -45,7 +46,7 @@ static int resetPacket(AVPacket * packet, AVPacket * pkt)
 		memcpy(pkt->data, packet->data, packet->size);
 		//填充自定义数据
 		unsigned char * sei = (unsigned char*)pkt->data + packet->size;
-		fill_sei_packet(sei, isAnnexb, TIME_STAMP_UUID,(const uint8_t*)buffer, len);
+		fill_sei_packet(sei, annexb_type, TIME_STAMP_UUID,(const uint8_t*)buffer, len);
 	}
 	
 

@@ -255,6 +255,7 @@ int EvoMediaSource::ReadFrame(EvoFrame** out)
 					//读取成功
 					if (out != NULL)
 					{
+						int annexb_type = get_annexb_type(packet_->data, packet_->size);
 						int64_t timestamp = (packet_->pts != AV_NOPTS_VALUE) ? (packet_->pts * av_q2d(videoStream_->time_base) * 1000) :
 							(packet_->dts != AV_NOPTS_VALUE) ? (packet_->dts * av_q2d(videoStream_->time_base) * 1000) : NAN;
 
@@ -262,7 +263,7 @@ int EvoMediaSource::ReadFrame(EvoFrame** out)
 						sprintf(sei_buf,"flags:%d pts:%llu dts:%llu timestamp:%llu time_base:num:%d den:%d",
 							packet_->flags,packet_->pts, packet_->dts, timestamp, videoStream_->time_base.num, videoStream_->time_base.den);
 						size_t len = strlen(sei_buf);
-						size_t sei_len = get_sei_packet_size((const uint8_t*)sei_buf,len);
+						size_t sei_len = get_sei_packet_size((const uint8_t*)sei_buf,len, annexb_type);
 
 						if (!Config_.UseSei)
 						{
@@ -281,7 +282,7 @@ int EvoMediaSource::ReadFrame(EvoFrame** out)
 
 						if (Config_.UseSei) {
 							//填充sei信息
-							fill_sei_packet(frame->data + packet_->size, annexb, TIME_STAMP_UUID, (const uint8_t*)sei_buf, len);
+							fill_sei_packet(frame->data + packet_->size, annexb_type, TIME_STAMP_UUID, (const uint8_t*)sei_buf, len);
 						}
 						if (!annexb && Config_.UseAnnexb)
 						{

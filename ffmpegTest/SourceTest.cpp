@@ -30,8 +30,8 @@ int main()
 	char * outfile = "../1.mp4";
 	//return testConvert(pathNV12, pathYUV);
 	//return testDecode(infile);
-	//return testDecodePath(inpath);
-	//return testDecodeSEI(infile_mp4);
+	return testDecodePath(inpath);
+	return testDecodeSEI(infile_mp4);
 	return testEncode(infile_yuv, outfile);
 	return testEncode2(infile, outfile);
 	return testFFmpeg(infile);

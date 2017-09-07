@@ -7,6 +7,7 @@
 
 //开始码
 static unsigned char START_CODE[] = { 0x00,0x00,0x00,0x01 };
+static unsigned char START_CODE_LOW[] = { 0x00,0x00,0x01 };
 
 //大小端转换
 uint32_t reversebytes(uint32_t value) {
@@ -33,7 +34,7 @@ bool check_is_annexb(uint8_t * packet, int32_t size)
 }
 
 //获取标准H264头类型
-int get_annexb_type(uint8_t * packet, int32_t size)
+int get_annexb_size(uint8_t * packet, int32_t size)
 {
 	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
 	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
@@ -47,6 +48,25 @@ int get_annexb_type(uint8_t * packet, int32_t size)
 	else if (size > 4 && memcmp(data, ANNEXB_CODE, 4) == 0)
 	{
 		return 4;
+	}
+	return 0;
+}
+
+//获取H264类型
+int get_annexb_type(uint8_t * packet, int32_t size)
+{
+	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
+	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
+
+	unsigned char *data = packet;
+	if (data == NULL) return 0;
+	if (size > 3 && memcmp(data, ANNEXB_CODE_LOW, 3) == 0)
+	{
+		return 2;
+	}
+	else if (size > 4 && memcmp(data, ANNEXB_CODE, 4) == 0)
+	{
+		return 1;
 	}
 	return 0;
 }
@@ -146,13 +166,17 @@ int32_t get_sei_nalu_size(const uint8_t *data, int32_t size)
 }
 
 //获取sei包长度
-int32_t get_sei_packet_size(const uint8_t *data, int32_t size)
+int32_t get_sei_packet_size(const uint8_t *data, int32_t size, int annexbType)
 {
+	if (annexbType == 2)
+	{
+		return get_sei_nalu_size(data, size) + 3;
+	}
 	return get_sei_nalu_size(data, size) + 4;
 }
 
 //填充sei数据
-int32_t fill_sei_packet(uint8_t * packet, bool isAnnexb, const uint8_t *uuid, const uint8_t * data, int32_t size)
+int32_t fill_sei_packet(uint8_t * packet, int annexbType, const uint8_t *uuid, const uint8_t * data, int32_t size)
 {
 	if (packet == NULL)
 	{
@@ -171,15 +195,21 @@ int32_t fill_sei_packet(uint8_t * packet, bool isAnnexb, const uint8_t *uuid, co
 
 	//NALU开始码
 	int32_t * size_ptr = &nalu_size;
-	if (isAnnexb)
+	if (annexbType == 2)
+	{
+		memcpy(nalu_data, START_CODE_LOW, sizeof(unsigned char)*3);
+		nalu_data += sizeof(unsigned char)*3;
+	}
+	else if (annexbType == 1)
 	{
 		memcpy(nalu_data, START_CODE, sizeof(unsigned int));
+		nalu_data += sizeof(unsigned int);
 	}
 	else
 	{
 		memcpy(nalu_data, size_ptr, sizeof(unsigned int));
+		nalu_data += sizeof(unsigned int);
 	}
-	nalu_data += sizeof(unsigned int);
 
 	uint8_t * sei_nalu = nalu_data;
 	//NAL
@@ -339,7 +369,7 @@ int get_annexb_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, 
 		int32_t second_index = 0;
 		if (index != -1)
 		{
-			int startCodeSize = get_annexb_type(data + index, data_size - index);
+			int startCodeSize = get_annexb_size(data + index, data_size - index);
 			second_index = find_annexb(data + index + startCodeSize, data_size - index - startCodeSize);
 			if (second_index >= 0)
 			{
@@ -369,7 +399,7 @@ int get_annexb_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, 
 				nalu_element_size = (int32_t)(packet + size - nalu_element);
 			}
 
-			int startCodeSize = get_annexb_type(nalu_element, nalu_element_size);
+			int startCodeSize = get_annexb_size(nalu_element, nalu_element_size);
 			if (startCodeSize == 0) continue;
 			//SEI
 			if ((nalu_element[startCodeSize] & 0x1F) == 6)

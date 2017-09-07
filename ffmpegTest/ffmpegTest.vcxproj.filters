@@ -75,6 +75,9 @@
     <ClCompile Include="testMP4Encode.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="ImageFile.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Encode.h">
@@ -96,6 +99,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="MediaDecode.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageFile.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>
