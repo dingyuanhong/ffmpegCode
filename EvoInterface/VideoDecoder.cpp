@@ -228,7 +228,10 @@ int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
 		else 
 		{
 			AVFrame* desFrame = retData;
-			if (tmpConvert != NULL)
+			if (!(info.Width == VideoFrame->width &&
+				info.Height == VideoFrame->height &&
+				info.Format == VideoFrame->format) &&
+				tmpConvert != NULL)
 			{
 				tmpConvert->Convert(VideoFrame, desFrame);
 			}

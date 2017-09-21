@@ -72,7 +72,9 @@ inline int TestInterface(const char * file)
 	info.Format = sourceContext->pix_fmt;
 
 	struct EvoVideoInfo des = info;
-	des.Format = AV_PIX_FMT_BGR24;
+	des.Format = AV_PIX_FMT_NV12;
+	des.Width = 1920;
+	des.Height = 960;
 	convert.Initialize(info, des);
 
 	if (decoder != NULL)
@@ -106,6 +108,11 @@ inline int TestInterface(const char * file)
 			{
 				//printf("pts:%lld dts:%lld dts:%lld\n", outFrame->pts, outFrame->pkt_pts, outFrame->pkt_dts);
 #ifdef _WIN32
+				char file[64];
+				sprintf(file,"./tmp/%05d.yuv",index++);
+				FILE * fp = fopen(file,"wb+");
+				fwrite(outFrame->data[0], outFrame->width*outFrame->height*3/2,1,fp);
+				fclose(fp);
 				//SaveAsBMP(outFrame, des.Width, des.Height, index++, 24);
 #endif
 				FreeAVFrame(&outFrame);
