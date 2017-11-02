@@ -13,7 +13,7 @@ inline int testDecodePath(std::string path)
 	AVCodec *codec = avcodec_find_decoder(AV_CODEC_ID_H264);
 	if (!codec) return -1;
 	codecContext = avcodec_alloc_context3(codec);
-
+	codecContext->thread_count = 5;
 	if (avcodec_open2(codecContext, codec, NULL) < 0)
 	{
 		return -1;
