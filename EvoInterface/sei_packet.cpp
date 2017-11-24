@@ -338,7 +338,7 @@ void uncompete_content(const sei_content & content, uint8_t * data, int32_t size
 					*data++ = content.data[i];
 					size--;
 				}
-				zero_count == 0;
+				zero_count = 0;
 			}
 			else if (content.data[i] == 0x00)
 			{
