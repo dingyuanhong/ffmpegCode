@@ -17,7 +17,7 @@ static uint8_t IMU_UUID[] = { 0x94,0x51,0xef,0x8f, 0xd2,0x41, 0x49,0x6a, 0x80, 0
 uint32_t reversebytes(uint32_t value);
 
 //检查是否为标准H264
-bool check_is_annexb(uint8_t * packet, int32_t size);
+int check_is_annexb(uint8_t * packet, int32_t size);
 
 //获取H264类型
 int get_annexb_type(uint8_t * packet, int32_t size);
