@@ -90,7 +90,7 @@ int32_t find_annexb(uint8_t * packet, int32_t size)
 				return index;
 			}
 		}
-		index += 2;
+		index += 1;
 	}
 
 	return -1;
@@ -134,7 +134,7 @@ int32_t get_content_uncompete_size(const uint8_t *data, int32_t size)
 			{
 				uncompete_size -= 1;
 			}
-			zero_count == 0;
+			zero_count = 0;
 		}
 		else if (data[i] == 0x00)
 		{
@@ -373,7 +373,7 @@ int get_annexb_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, 
 			second_index = find_annexb(data + index + startCodeSize, data_size - index - startCodeSize);
 			if (second_index >= 0)
 			{
-				second_index += startCodeSize - 1;
+				second_index += startCodeSize;
 			}
 		}
 
