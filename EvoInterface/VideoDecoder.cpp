@@ -239,6 +239,7 @@ int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
 			{
 				//�����Ƶ��Ϣ
 				desFrame->width = info.Width;
+				desFrame->width = info.Width;
 				desFrame->height = info.Height;
 				desFrame->format = info.Format;
 				//��������

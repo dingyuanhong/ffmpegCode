@@ -219,7 +219,7 @@ int32_t fill_sei_packet(uint8_t * packet, int annexbType, const uint8_t *uuid, c
 
 	size_t sei_payload_size = size + UUID_SIZE;
 	//数据长度
-	while (true)
+	while (1)
 	{
 		*nalu_data++ = (sei_payload_size >= 0xFF ? 0xFF : (char)sei_payload_size);
 		if (sei_payload_size < 0xFF) break;
@@ -310,7 +310,7 @@ int get_sei_buffer(uint8_t * packet, int32_t size, sei_content *content)
 		sei_size -= UUID_SIZE;
 
 		content->data = sei;
-		content->size = packet + size - sei;
+		content->size = (int32_t)(packet + size - sei);
 		content->payload_size = sei_size;
 
 		return sei_size;
@@ -452,7 +452,7 @@ int get_mp4_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, uin
 		{
 			//SEI
 			uint8_t * sei_data = data + 4 + 1;
-			int32_t sei_data_length = min(nalu_size, (packet + size - sei_data));
+			int32_t sei_data_length = min(nalu_size, (int)(packet + size - sei_data));
 			sei_content content = { 0 };
 			int ret = get_sei_buffer(sei_data, sei_data_length, &content);
 			if (ret != -1)
@@ -488,7 +488,7 @@ int get_mp4_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, uin
 int get_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, uint8_t ** pdata, int32_t *psize)
 {
 	if (uuid == NULL) return -1;
-	bool isAnnexb = check_is_annexb(packet, size);
+	int isAnnexb = check_is_annexb(packet, size);
 	//暂时只处理MP4封装,annexb暂为处理
 	if (isAnnexb)
 	{
