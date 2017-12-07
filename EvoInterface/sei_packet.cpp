@@ -115,6 +115,10 @@ static uint32_t get_content_compete_size(const uint8_t *data, uint32_t size)
 		{
 			zero_count++;
 		}
+		else
+		{
+			zero_count = 0;
+		}
 	}
 	return size + zero_prevention;
 }
@@ -139,6 +143,10 @@ static uint32_t get_content_uncompete_size(const uint8_t *data, uint32_t size)
 		else if (data[i] == 0x00)
 		{
 			zero_count++;
+		}
+		else
+		{
+			zero_count = 0;
 		}
 	}
 	return uncompete_size;
@@ -255,6 +263,10 @@ int32_t fill_sei_packet(uint8_t * packet, uint32_t annexbType, const uint8_t *uu
 					if (data[i] == 0x00)
 					{
 						zero_count++;
+					}
+					else
+					{
+						zero_count = 0;
 					}
 				}
 			}
