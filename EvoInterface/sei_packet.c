@@ -5,25 +5,25 @@
 
 #define min(X,Y) ((X) < (Y) ? (X) : (Y))
 
-//Ã¸â„¢Â ÂºÂ¬Ã
+//¿ªÊ¼Âë
 static unsigned char START_CODE[] = { 0x00,0x00,0x00,0x01 };
 static unsigned char START_CODE_LOW[] = { 0x00,0x00,0x01 };
 
-//Â¥Ã›â€“Â°âˆ‚Ã€â—Šâ„¢ÂªÂª
+//´óĞ¡¶Ë×ª»»
 uint32_t reversebytes(uint32_t value) {
 	return (value & 0x000000FFU) << 24 | (value & 0x0000FF00U) << 8 |
 		(value & 0x00FF0000U) >> 8 | (value & 0xFF000000U) >> 24;
 }
 
-//ÂºÃâ‰¤ÃˆÂ Â«âˆ‘Ã’Å’â„¢Â±Ãâ—ŠÂºH264
-int check_is_annexb(uint8_t * packet, int32_t size)
+//¼ì²éÊÇ·ñÎª±ê×¼H264
+uint32_t check_is_annexb(uint8_t * packet, uint32_t size)
 {
 	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
 	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
 
 	unsigned char *data = packet;
 	if (data == NULL) return 0;
-	int isAnnexb = 0;
+	uint32_t isAnnexb = 0;
 	if ((size > 3 && memcmp(data, ANNEXB_CODE_LOW, 3) == 0) ||
 		(size > 4 && memcmp(data, ANNEXB_CODE, 4) == 0)
 		)
@@ -33,8 +33,8 @@ int check_is_annexb(uint8_t * packet, int32_t size)
 	return isAnnexb;
 }
 
-//ÂªÃ’Â»Â°Â±Ãâ—ŠÂºH264Ã•âˆ‘Â¿â€¡â€“Ã•
-int get_annexb_size(uint8_t * packet, int32_t size)
+//»ñÈ¡±ê×¼H264Í·ÀàĞÍ
+uint32_t get_annexb_size(uint8_t * packet, uint32_t size)
 {
 	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
 	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
@@ -52,8 +52,8 @@ int get_annexb_size(uint8_t * packet, int32_t size)
 	return 0;
 }
 
-//ÂªÃ’Â»Â°H264Â¿â€¡â€“Ã•
-int get_annexb_type(uint8_t * packet, int32_t size)
+//»ñÈ¡H264ÀàĞÍ
+uint32_t get_annexb_type(uint8_t * packet, uint32_t size)
 {
 	unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
 	unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
@@ -71,8 +71,8 @@ int get_annexb_type(uint8_t * packet, int32_t size)
 	return 0;
 }
 
-//Ã€â€”Ã€ËœÂ±Ãâ—ŠÂºÃ•âˆ‘
-int32_t find_annexb(uint8_t * packet, int32_t size)
+//ËÑË÷±ê×¼Í·
+int32_t find_annexb(uint8_t * packet, uint32_t size)
 {
 	uint8_t * data = packet;
 	if (size <= 0) return -1;
@@ -96,14 +96,14 @@ int32_t find_annexb(uint8_t * packet, int32_t size)
 	return -1;
 }
 
-//ÂºÃâ‰¤â€šÃ¦âˆ«â€™Ë˜â—ŠÃ·âˆ‚Å’
-int32_t get_content_compete_size(const uint8_t *data, int32_t size)
+//¼ì²â¾ºÕù×Ö¶Î
+static uint32_t get_content_compete_size(const uint8_t *data, uint32_t size)
 {
 	if (data == NULL) return 0;
 
-	int zero_count = 0;
-	int zero_prevention = 0;
-	for (int32_t i = 0; i < size; i++)
+	uint32_t zero_count = 0;
+	uint32_t zero_prevention = 0;
+	for (uint32_t i = 0; i < size; i++)
 	{
 		if (zero_count >= 2)
 		{
@@ -115,18 +115,22 @@ int32_t get_content_compete_size(const uint8_t *data, int32_t size)
 		{
 			zero_count++;
 		}
+		else
+		{
+			zero_count = 0;
+		}
 	}
 	return size + zero_prevention;
 }
 
-//ÂºÃâ‰¤â€šâˆ‘Â«Ã¦âˆ«â€™Ë˜â‰¥Â§âˆ‚Â»
-int32_t get_content_uncompete_size(const uint8_t *data, int32_t size)
+//¼ì²â·Ç¾ºÕù³¤¶È
+static uint32_t get_content_uncompete_size(const uint8_t *data, uint32_t size)
 {
 	if (data == NULL) return 0;
 
-	int zero_count = 0;
-	int uncompete_size = size;
-	for (int32_t i = 0; i < size; i++)
+	uint32_t zero_count = 0;
+	uint32_t uncompete_size = size;
+	for (uint32_t i = 0; i < size; i++)
 	{
 		if (zero_count >= 2)
 		{
@@ -140,22 +144,26 @@ int32_t get_content_uncompete_size(const uint8_t *data, int32_t size)
 		{
 			zero_count++;
 		}
+		else
+		{
+			zero_count = 0;
+		}
 	}
 	return uncompete_size;
 }
 
-//ÂªÃ’Â»Â°SEIâ‰¥Â§âˆ‚Â»
-int32_t get_sei_nalu_size(const uint8_t *data, int32_t size)
+//»ñÈ¡SEI³¤¶È
+uint32_t get_sei_nalu_size(const uint8_t *data, uint32_t size)
 {
-	int32_t content_size = get_content_compete_size(data, size);
-	//Âºâˆ†Ã€â€Ã¸â€™Âºâ€°ÂµÆ’
-	int32_t payload_size = size + UUID_SIZE;
+	uint32_t content_size = get_content_compete_size(data, size);
+	//¼ÆËã¿Õ¼äµÄ
+	uint32_t payload_size = size + UUID_SIZE;
 	//SEI payload size
-	int32_t sei_payload_size = content_size + UUID_SIZE;
-	//NALU + payloadÂ¿â€¡â€“Ã• + Â ËÃ¦â€ºâ‰¥Â§âˆ‚Â» + Â ËÃ¦â€º
-	int32_t sei_size = 1 + 1 + (payload_size / 0xFF + (payload_size % 0xFF != 0 ? 1 : 0)) + sei_payload_size;
-	//Î©Ã¿Ã·Ï€Â¬Ã
-	int32_t tail_size = 2;
+	uint32_t sei_payload_size = content_size + UUID_SIZE;
+	//NALU + payloadÀàĞÍ + Êı¾İ³¤¶È + Êı¾İ
+	uint32_t sei_size = 1 + 1 + (payload_size / 0xFF + (payload_size % 0xFF != 0 ? 1 : 0)) + sei_payload_size;
+	//½ØÖ¹Âë
+	uint32_t tail_size = 2;
 	if (sei_size % 2 == 1)
 	{
 		tail_size -= 1;
@@ -165,8 +173,8 @@ int32_t get_sei_nalu_size(const uint8_t *data, int32_t size)
 	return sei_size;
 }
 
-//ÂªÃ’Â»Â°seiâˆÂ¸â‰¥Â§âˆ‚Â»
-int32_t get_sei_packet_size(const uint8_t *data, int32_t size, int annexbType)
+//»ñÈ¡sei°ü³¤¶È
+uint32_t get_sei_packet_size(const uint8_t *data, uint32_t size, uint32_t annexbType)
 {
 	if (annexbType == 2)
 	{
@@ -175,8 +183,8 @@ int32_t get_sei_packet_size(const uint8_t *data, int32_t size, int annexbType)
 	return get_sei_nalu_size(data, size) + 4;
 }
 
-//ÃƒÃ“â‰¥â€°seiÂ ËÃ¦â€º
-int32_t fill_sei_packet(uint8_t * packet, int annexbType, const uint8_t *uuid, const uint8_t * data, int32_t size)
+//Ìî³äseiÊı¾İ
+int32_t fill_sei_packet(uint8_t * packet, uint32_t annexbType, const uint8_t *uuid, const uint8_t * data, uint32_t size)
 {
 	if (packet == NULL)
 	{
@@ -188,13 +196,13 @@ int32_t fill_sei_packet(uint8_t * packet, int annexbType, const uint8_t *uuid, c
 	}
 
 	uint8_t * nalu_data = packet;
-	int32_t nalu_size = get_sei_nalu_size(data, size);
-	int32_t sei_size = nalu_size;
-	//Â¥Ã›âˆ‚Ã€â—Šâ„¢â€“Â°âˆ‚Ã€
+	uint32_t nalu_size = get_sei_nalu_size(data, size);
+	uint32_t sei_size = nalu_size;
+	//´ó¶Ë×ªĞ¡¶Ë
 	nalu_size = reversebytes(nalu_size);
 
-	//NALUÃ¸â„¢Â ÂºÂ¬Ã
-	int32_t * size_ptr = &nalu_size;
+	//NALU¿ªÊ¼Âë
+	uint32_t * size_ptr = &nalu_size;
 	if (annexbType == 2)
 	{
 		memcpy(nalu_data, START_CODE_LOW, sizeof(unsigned char)*3);
@@ -202,13 +210,13 @@ int32_t fill_sei_packet(uint8_t * packet, int annexbType, const uint8_t *uuid, c
 	}
 	else if (annexbType == 1)
 	{
-		memcpy(nalu_data, START_CODE, sizeof(unsigned int));
-		nalu_data += sizeof(unsigned int);
+		memcpy(nalu_data, START_CODE, sizeof(uint32_t));
+		nalu_data += sizeof(uint32_t);
 	}
 	else
 	{
-		memcpy(nalu_data, size_ptr, sizeof(unsigned int));
-		nalu_data += sizeof(unsigned int);
+		memcpy(nalu_data, size_ptr, sizeof(uint32_t));
+		nalu_data += sizeof(uint32_t);
 	}
 
 	uint8_t * sei_nalu = nalu_data;
@@ -217,8 +225,8 @@ int32_t fill_sei_packet(uint8_t * packet, int annexbType, const uint8_t *uuid, c
 					  //sei payload
 	*nalu_data++ = 5; //unregister
 
-	size_t sei_payload_size = size + UUID_SIZE;
-	//Â ËÃ¦â€ºâ‰¥Â§âˆ‚Â»
+	uint32_t sei_payload_size = size + UUID_SIZE;
+	//Êı¾İ³¤¶È
 	while (1)
 	{
 		*nalu_data++ = (sei_payload_size >= 0xFF ? 0xFF : (char)sei_payload_size);
@@ -229,8 +237,8 @@ int32_t fill_sei_packet(uint8_t * packet, int annexbType, const uint8_t *uuid, c
 	//UUID
 	memcpy(nalu_data, uuid, UUID_SIZE);
 	nalu_data += UUID_SIZE;
-	int32_t content_size = get_content_compete_size(data, size);
-	//Â ËÃ¦â€º
+	uint32_t content_size = get_content_compete_size(data, size);
+	//Êı¾İ
 	if (data != NULL)
 	{
 		if (content_size == size)
@@ -256,12 +264,16 @@ int32_t fill_sei_packet(uint8_t * packet, int annexbType, const uint8_t *uuid, c
 					{
 						zero_count++;
 					}
+					else
+					{
+						zero_count = 0;
+					}
 				}
 			}
 		}
 	}
 
-	//tail Î©Ã¿Ã·Ï€âˆ‚â€˜âˆ†ÃÂ¬Ã
+	//tail ½ØÖ¹¶ÔÆëÂë
 	if (sei_nalu + sei_size - nalu_data == 1)
 	{
 		*nalu_data = 0x80;
@@ -278,29 +290,29 @@ int32_t fill_sei_packet(uint8_t * packet, int annexbType, const uint8_t *uuid, c
 typedef struct sei_content {
 	uint8_t * uuid;
 	uint8_t * data;
-	int32_t size;
-	int32_t payload_size;
+	uint32_t size;
+	uint32_t payload_size;
 }sei_content;
 
-//ÂªÃ’Â»Â°SEIÆ’â„Â»â€º
-int get_sei_buffer(uint8_t * packet, int32_t size, sei_content *content)
+//»ñÈ¡SEIÄÚÈİ
+static int32_t get_sei_buffer(uint8_t * packet, uint32_t size, sei_content *content)
 {
 	if (size <= 0) return -1;
 	if (packet == NULL) return -1;
 
-	unsigned char * sei = packet;
-	int sei_type = 0;
-	unsigned sei_size = 0;
+	uint8_t * sei = packet;
+	uint32_t sei_type = 0;
+	uint32_t sei_size = 0;
 	//payload type
 	do {
 		sei_type += *sei;
 	} while (*sei++ == 255);
-	//Â ËÃ¦â€ºâ‰¥Â§âˆ‚Â»
+	//Êı¾İ³¤¶È
 	do {
 		sei_size += *sei;
 	} while (*sei++ == 255);
 
-	//ÂºÃâ‰¤ÃˆUUID
+	//¼ì²éUUID
 	if (sei_size >= UUID_SIZE && sei_size <= (packet + size - sei) &&
 		sei_type == 5)
 	{
@@ -310,7 +322,7 @@ int get_sei_buffer(uint8_t * packet, int32_t size, sei_content *content)
 		sei_size -= UUID_SIZE;
 
 		content->data = sei;
-		content->size = (int32_t)(packet + size - sei);
+		content->size = (uint32_t)(packet + size - sei);
 		content->payload_size = sei_size;
 
 		return sei_size;
@@ -318,8 +330,8 @@ int get_sei_buffer(uint8_t * packet, int32_t size, sei_content *content)
 	return -1;
 }
 
-//âˆ‘Â¥Î©â€šÂ ËÃ¦â€º
-void uncompete_content(const sei_content * content, uint8_t * data, int32_t size)
+//·´½âÊı¾İ
+static void uncompete_content(const sei_content * content, uint8_t * data, uint32_t size)
 {
 	if (size == content->size)
 	{
@@ -328,8 +340,7 @@ void uncompete_content(const sei_content * content, uint8_t * data, int32_t size
 	else
 	{
 		int zero_count = 0;
-		int uncompete_size = size;
-		for (int32_t i = 0; i < content->size; i++)
+		for (uint32_t i = 0; i < content->size; i++)
 		{
 			if (zero_count >= 2)
 			{
@@ -357,7 +368,7 @@ void uncompete_content(const sei_content * content, uint8_t * data, int32_t size
 	}
 }
 
-int get_annexb_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, uint8_t ** pdata, int32_t *psize)
+int32_t get_annexb_sei_content(uint8_t * packet, uint32_t size, const uint8_t *uuid, uint8_t ** pdata, uint32_t *psize)
 {
 	uint8_t * data = packet;
 	uint32_t data_size = size;
@@ -369,7 +380,7 @@ int get_annexb_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, 
 		int32_t second_index = 0;
 		if (index != -1)
 		{
-			int startCodeSize = get_annexb_size(data + index, data_size - index);
+			uint32_t startCodeSize = get_annexb_size(data + index, data_size - index);
 			second_index = find_annexb(data + index + startCodeSize, data_size - index - startCodeSize);
 			if (second_index >= 0)
 			{
@@ -399,7 +410,7 @@ int get_annexb_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, 
 				nalu_element_size = (int32_t)(packet + size - nalu_element);
 			}
 
-			int startCodeSize = get_annexb_size(nalu_element, nalu_element_size);
+			uint32_t startCodeSize = get_annexb_size(nalu_element, nalu_element_size);
 			if (startCodeSize == 0) continue;
 			//SEI
 			if ((nalu_element[startCodeSize] & 0x1F) == 6)
@@ -407,7 +418,7 @@ int get_annexb_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, 
 				uint8_t * sei_data = nalu_element + startCodeSize + 1;
 				int32_t sei_data_length = nalu_element_size - startCodeSize - 1;
 				sei_content content = { 0 };
-				int ret = get_sei_buffer(sei_data, sei_data_length, &content);
+				int32_t ret = get_sei_buffer(sei_data, sei_data_length, &content);
 				if (ret != -1)
 				{
 					if (memcmp(uuid, content.uuid, UUID_SIZE) == 0)
@@ -415,7 +426,7 @@ int get_annexb_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, 
 						int32_t uncompete_size = get_content_uncompete_size(content.data, content.size);
 						if (uncompete_size > 0 && pdata != NULL)
 						{
-							uncompete_size = min(content.payload_size, uncompete_size);
+							uncompete_size = min((int32_t)content.payload_size, uncompete_size);
 							uint8_t * outData = (uint8_t*)malloc(uncompete_size + 1);
 							memset(outData, 0, uncompete_size + 1);
 							uncompete_content(&content, outData, uncompete_size);
@@ -439,27 +450,28 @@ int get_annexb_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, 
 }
 
 
-int get_mp4_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, uint8_t ** pdata, int32_t *psize)
+int32_t get_mp4_sei_content(uint8_t * packet, uint32_t size, const uint8_t *uuid, uint8_t ** pdata, uint32_t *psize)
 {
+    return -1;
 	uint8_t * data = packet;
-	//ÂµÂ±Â«âˆNALU
+	//µ±Ç°NALU
 	while (data < packet + size) {
-		//MP4âˆÃ’Â Î©âˆ†ï£¿Â ÂºÂ¬Ã/â‰¥Â§âˆ‚Â»
-		unsigned int *nalu_length = (unsigned int *)data;
-		int nalu_size = (int)reversebytes(*nalu_length);
+		//MP4¸ñÊ½ÆğÊ¼Âë/³¤¶È
+		uint32_t *nalu_length = (uint32_t *)data;
+		uint32_t nalu_size = reversebytes(*nalu_length);
 		//NALU header
 		if ((*(data + 4) & 0x1F) == 6)
 		{
 			//SEI
 			uint8_t * sei_data = data + 4 + 1;
-			int32_t sei_data_length = min(nalu_size, (int)(packet + size - sei_data));
+			uint32_t sei_data_length = min(nalu_size, (uint32_t)(packet + size - sei_data));
 			sei_content content = { 0 };
 			int ret = get_sei_buffer(sei_data, sei_data_length, &content);
 			if (ret != -1)
 			{
 				if (memcmp(uuid, content.uuid, UUID_SIZE) == 0)
 				{
-					int32_t uncompete_size = get_content_uncompete_size(content.data, content.size);
+					uint32_t uncompete_size = get_content_uncompete_size(content.data, content.size);
 					if (uncompete_size > 0 && pdata != NULL)
 					{
 						uncompete_size = min(content.payload_size, uncompete_size);
@@ -485,11 +497,11 @@ int get_mp4_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, uin
 	return -1;
 }
 
-int get_sei_content(uint8_t * packet, int32_t size, const uint8_t *uuid, uint8_t ** pdata, int32_t *psize)
+int get_sei_content(uint8_t * packet, uint32_t size, const uint8_t *uuid, uint8_t ** pdata, uint32_t *psize)
 {
 	if (uuid == NULL) return -1;
-	int isAnnexb = check_is_annexb(packet, size);
-	//â€˜â€ºÂ Â±Ã·ÂªÂ¥Â¶Â¿ÃŒMP4âˆ‘â€šâ—Šâˆ,annexbâ€˜â€ºÅ’â„¢Â¥Â¶Â¿ÃŒ
+	uint32_t isAnnexb = check_is_annexb(packet, size);
+	//ÔİÊ±Ö»´¦ÀíMP4·â×°,annexbÔİÎª´¦Àí
 	if (isAnnexb)
 	{
 		return get_annexb_sei_content(packet,size,uuid,pdata,psize);

@@ -72,7 +72,7 @@ uint32_t get_annexb_type(uint8_t * packet, uint32_t size)
 }
 
 //搜索标准头
-static int32_t find_annexb(uint8_t * packet, uint32_t size)
+int32_t find_annexb(uint8_t * packet, uint32_t size)
 {
 	uint8_t * data = packet;
 	if (size <= 0) return -1;
@@ -452,6 +452,7 @@ int32_t get_annexb_sei_content(uint8_t * packet, uint32_t size, const uint8_t *u
 
 int32_t get_mp4_sei_content(uint8_t * packet, uint32_t size, const uint8_t *uuid, uint8_t ** pdata, uint32_t *psize)
 {
+    return -1;
 	uint8_t * data = packet;
 	//当前NALU
 	while (data < packet + size) {

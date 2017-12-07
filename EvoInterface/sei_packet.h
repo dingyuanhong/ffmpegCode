@@ -22,6 +22,8 @@ uint32_t check_is_annexb(uint8_t * packet, uint32_t size);
 //获取H264类型
 uint32_t get_annexb_type(uint8_t * packet, uint32_t size);
 
+uint32_t get_annexb_size(uint8_t * packet, uint32_t size);
+
 //获取sei包长度
 uint32_t get_sei_packet_size(const uint8_t *data, uint32_t size, uint32_t annexbType);
 
@@ -39,5 +41,7 @@ int32_t get_sei_content(uint8_t * packet, uint32_t size, const uint8_t *uuid, ui
 
 //释放sei内容缓冲区
 void free_sei_content(uint8_t**pdata);
+
+int32_t find_annexb(uint8_t * packet, uint32_t size);
 
 #endif
