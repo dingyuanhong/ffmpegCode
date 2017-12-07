@@ -313,7 +313,7 @@ int MediaDecode::decode(uint8_t * data, int32_t size)
         packet.size = size;
 
         uint8_t *buffer = NULL;
-        int count = 256;
+        uint32_t count = 256;
         ret = get_sei_content(data,size, TIME_STAMP_UUID,&buffer,&count);
 #ifndef _WIN32
 //        __android_log_print(ANDROID_LOG_DEBUG,"JNI-DECODER","buffer = %s",buffer);

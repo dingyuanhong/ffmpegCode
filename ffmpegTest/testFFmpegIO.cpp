@@ -174,7 +174,7 @@ inline void WriteYUV420(FILE * fp, AVFrame * frame)
 
 //char * path = "D:/Users/ee/Desktop/temp_frame_0724_1549/temp_frame_0724_1549";
 //char * path = "D:/Users/ee/Desktop/temp_frame_072/temp_frame_0724_1549";
-inline int testFFmpegIO(const char * path)
+int testFFmpegIO(const char * path)
 {
 	av_register_all();
 	

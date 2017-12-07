@@ -10,7 +10,7 @@
 #endif
 
 //"../Vid0616000023.mp4"
-inline int TestInterface(const char * file)
+int TestInterface(const char * file)
 {
 	avcodec_register_all();
 

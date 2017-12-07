@@ -14,7 +14,7 @@ static AVCodecContext *CreateCodecContent(AVCodecParameters *codecpar)
 }
 #endif
 
-inline int testEncode2(const char * infile,const char * outfile)
+int testEncode2(const char * infile,const char * outfile)
 {
 	av_register_all();
 

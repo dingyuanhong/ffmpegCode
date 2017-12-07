@@ -4,7 +4,7 @@
 #include "exterlFunction.h"
 
 //"../Vid0616000023.mp4"
-inline int testDecodeSEI(const char * file)
+int testDecodeSEI(const char * file)
 {
 	avcodec_register_all();
 
@@ -61,6 +61,7 @@ inline int testDecodeSEI(const char * file)
 
 		decoder = new VideoDecoder(sourceContext);
 	}
+	AVBitStreamFilterContext *bsfc = av_bitstream_filter_init("h264_mp4toannexb");
 
 	while (true)
 	{
@@ -69,19 +70,45 @@ inline int testDecodeSEI(const char * file)
 		if (out != NULL)
 		{
 			uint8_t * buffer = NULL;
-			int count = 0;
-			int ret = get_sei_content(out->data, out->size, TIME_STAMP_UUID, &buffer, &count);
+			uint32_t count = 0;
+			int ret = get_sei_content(out->data, out->size, IMU_UUID, &buffer, &count);
+			//printf("get_sei_content:%d data:%p size:%d pkt.size:%d\n", ret, buffer, count, out->size);
 			if (buffer != NULL)
 			{
-				printf("%s\n", buffer);
+				float * imu = (float*)buffer;
+				printf("%lld %lld imu:%f %f %f %f %f %f %f %f %f\n", out->pts, out->dts, imu[0], imu[1], imu[2], imu[3], imu[4], imu[5], imu[6], imu[7], imu[8]);
 				free_sei_content(&buffer);
 			}
+			else {
+				uint8_t* filter_buffer = (uint8_t*)av_malloc(out->size);
+				int filter_size = out->size;
+				memcpy(filter_buffer, out->data, out->size);
+				filter_buffer[0] = 0;
+				filter_buffer[1] = 0;
+				filter_buffer[2] = 0;
+				filter_buffer[3] = 1;
+				uint8_t * buffer = NULL;
+				uint32_t count = 0;
+				int ret = get_sei_content(filter_buffer, filter_size, IMU_UUID, &buffer, &count);
+				av_free(filter_buffer);
+				//printf("get_sei_content:%d data:%p size:%d pkt.size:%d\n", ret, buffer, count, out->size);
+				if (buffer != NULL)
+				{
+					float * imu = (float*)buffer;
+					printf("%lld %lld imu:%f %f %f %f %f %f %f %f %f\n", out->pts, out->dts, imu[0], imu[1], imu[2], imu[3], imu[4], imu[5], imu[6], imu[7], imu[8]);
+					free_sei_content(&buffer);
+				}
+				else {
+					printf("no find sei.");
+				}
+			}
+			
 
 			AVFrame *outFrame = NULL;
 
-			printf("Decode begin:%lld\n", av_gettime() / 1000);
+			//printf("Decode begin:%lld\n", av_gettime() / 1000);
 			decoder->DecodeFrame(out, &outFrame);
-			printf("Decode end:%lld Success:%d\n", av_gettime() / 1000, (outFrame != NULL));
+			//printf("Decode end:%lld Success:%d\n", av_gettime() / 1000, (outFrame != NULL));
 
 			if (outFrame != NULL)
 			{
@@ -95,6 +122,7 @@ inline int testDecodeSEI(const char * file)
 			break;
 		}
 	}
+	av_bitstream_filter_close(bsfc);
 
 	if (decoder != NULL)
 	{

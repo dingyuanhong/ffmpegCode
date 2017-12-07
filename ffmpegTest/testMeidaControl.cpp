@@ -1,6 +1,6 @@
 #include "MediaControl.h"
 
-inline int testMediaControl(const char * file)
+int testMediaControl(const char * file)
 {
 	MediaControl * control = new MediaControl();
 	int ret = control->Open(file);

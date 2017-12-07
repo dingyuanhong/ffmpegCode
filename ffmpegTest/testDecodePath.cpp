@@ -5,7 +5,7 @@
 #include "ImageFile.h"
 
 //std::string path = "../temp_frame/";
-inline int testDecodePath(std::string path)
+int testDecodePath(std::string path)
 {
 	av_register_all();
 
@@ -62,7 +62,7 @@ inline int testDecodePath(std::string path)
 		size_t red = fread(buffer, 1, size, fp);
 
 		uint8_t * seibuffer = NULL;
-		int seicount = 156;
+		uint32_t seicount = 156;
 		int ret = get_sei_content(buffer, size, TIME_STAMP_UUID, &seibuffer, &seicount);
 
 		int flags = 0;

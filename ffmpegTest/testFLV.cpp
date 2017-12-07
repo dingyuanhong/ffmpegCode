@@ -12,7 +12,7 @@ inline long fileSize(FILE * in)
 }
 
 //char * path = "D:/Users/ee/Desktop/temp_frame_0724_1549/temp_frame_0724_1549";
-inline int testFLV(const char * path)
+int testFLV(const char * path)
 {
 	char strBuffer[256];
 	sprintf(strBuffer, "%s/flv_frame.flv", path);

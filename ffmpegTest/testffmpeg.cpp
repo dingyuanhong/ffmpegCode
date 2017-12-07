@@ -2,7 +2,7 @@
 #include "exterlFunction.h"
 
 //file="../1.mp4"
-inline int testFFmpeg(const char * file)
+int testFFmpeg(const char * file)
 {
 	av_register_all();
 
@@ -47,7 +47,7 @@ inline int testFFmpeg(const char * file)
 				}
 				//取出自定义数据
 				uint8_t *selfPacket = NULL;
-				int32_t count = 0;
+				uint32_t count = 0;
 				ret = get_sei_content(packet->data, packet->size, TIME_STAMP_UUID, &selfPacket, &count);
 				if (selfPacket != NULL)
 				{

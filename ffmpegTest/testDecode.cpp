@@ -4,7 +4,7 @@
 #include "exterlFunction.h"
 
 //"../video.264"
-inline int testDecode(const char * file)
+int testDecode(const char * file)
 {
 	av_register_all();
 

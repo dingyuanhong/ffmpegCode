@@ -4,7 +4,7 @@
 #include "exterlFunction.h"
 
 //"../Vid0616000023.mp4"
-inline int TestHeader(const char *file)
+int TestHeader(const char *file)
 {
 	avcodec_register_all();
 

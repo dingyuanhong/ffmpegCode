@@ -23,7 +23,7 @@ inline uint64_t GetFileSize(const char * file)
 	return size;
 }
 
-inline int testConvert(const char * path,const char * opath)
+int testConvert(const char * path,const char * opath)
 {
 	EvoVideoConvert convert;
 	EvoVideoInfo info;

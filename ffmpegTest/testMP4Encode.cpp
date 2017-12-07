@@ -5,7 +5,7 @@
 
 //"../Vid0616000023.mp4"
 //"../1.mp4"
-inline int testMP4Encode(const char * file,const char * outFile)
+int testMP4Encode(const char * file,const char * outFile)
 {
 	/****************************************************************/
 	EvoMediaSource source;
