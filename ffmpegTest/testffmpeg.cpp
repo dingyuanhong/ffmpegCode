@@ -1,5 +1,6 @@
 #include "EvHeade.h"
 #include "exterlFunction.h"
+#include "ImageFile.h"
 
 //file="../1.mp4"
 int testFFmpeg(const char * file)
@@ -43,6 +44,13 @@ int testFFmpeg(const char * file)
 				ret = decodeVideo(codecContext, packet, frame);
 				if (ret == 1)
 				{
+					FILE * fp = fopen("../tmp.yuv","wb");
+					void * ptr = frame->data[0];
+					int len = frame->height*frame->width * 3 / 2;
+					size_t ret = fwrite(ptr, len,1,fp);
+					printf("%lld %d\n",ret,errno);
+					//fflush(fp);
+					fclose(fp);
 					av_frame_unref(frame);
 				}
 				//取出自定义数据

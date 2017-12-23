@@ -62,21 +62,26 @@ int testDecodeSEI(const char * file)
 		decoder = new VideoDecoder(sourceContext);
 	}
 	AVBitStreamFilterContext *bsfc = av_bitstream_filter_init("h264_mp4toannexb");
-
+	int index = 0;
 	while (true)
 	{
 		EvoFrame *out = NULL;
 		ret = source.ReadFrame(&out);
 		if (out != NULL)
 		{
+			index++;
 			uint8_t * buffer = NULL;
 			uint32_t count = 0;
 			int ret = get_sei_content(out->data, out->size, IMU_UUID, &buffer, &count);
 			//printf("get_sei_content:%d data:%p size:%d pkt.size:%d\n", ret, buffer, count, out->size);
 			if (buffer != NULL)
 			{
+				if (index == 318)
+				{
+					printf("");
+				}
 				float * imu = (float*)buffer;
-				printf("%lld %lld imu:%f %f %f %f %f %f %f %f %f\n", out->pts, out->dts, imu[0], imu[1], imu[2], imu[3], imu[4], imu[5], imu[6], imu[7], imu[8]);
+				printf("%lld %lld imu:%f  %f  %f  %f  %f  %f  %f  %f  %f\n", out->pts, out->dts, imu[0], imu[1], imu[2], imu[3], imu[4], imu[5], imu[6], imu[7], imu[8]);
 				free_sei_content(&buffer);
 			}
 			else {
