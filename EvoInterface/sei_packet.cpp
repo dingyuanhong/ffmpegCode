@@ -344,12 +344,15 @@ static void uncompete_content(const sei_content * content, uint8_t * data, uint3
 		{
 			if (zero_count >= 2)
 			{
-				if (content->data[i] != 0x03)
+				if (content->data[i] == 0x03)
+				{
+					zero_count = 0;
+				}
+				else
 				{
 					*data++ = content->data[i];
 					size--;
 				}
-				zero_count = 0;
 			}
 			else if (content->data[i] == 0x00)
 			{
