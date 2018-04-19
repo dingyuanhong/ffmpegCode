@@ -78,6 +78,9 @@
     <ClCompile Include="ImageFile.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="testEncode3.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Encode.h">

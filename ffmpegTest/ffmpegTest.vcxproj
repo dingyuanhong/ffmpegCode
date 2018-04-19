@@ -171,6 +171,7 @@
     <ClCompile Include="testDecodeSEI.cpp" />
     <ClCompile Include="testEncode.cpp" />
     <ClCompile Include="testEncode2.cpp" />
+    <ClCompile Include="testEncode3.cpp" />
     <ClCompile Include="testffmpeg.cpp" />
     <ClCompile Include="testFFmpegIO.cpp" />
     <ClCompile Include="testFLV.cpp" />

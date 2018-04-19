@@ -13,6 +13,7 @@
 //#include "testEncode.cpp"
 //#include "testInterface.cpp"
 //#include "testMP4Encode.cpp"
+//#include "testEncode3.cpp"
 #include <string>
 
 int testConvert(const char * path, const char * opath);
@@ -28,6 +29,7 @@ int TestHeader(const char *file);
 int TestInterface(const char * file);
 int testMediaControl(const char * file);
 int testMP4Encode(const char * file, const char * outFile);
+int testEncode3(const char * infile, const char * outfile);
 
 #pragma comment(lib,"EvoInterface.lib")
 
@@ -69,30 +71,85 @@ int testIMU()
 	return 0;
 }
 
-int main()
+#include <string.h>
+
+int main(int argv ,char* argc[])
 {
-	//return testIMU();
+	char * type = NULL;
+	if (argv > 1)
+	{
+		type = argc[1];
+	}
 
 	char * inpath = "../temp_frame/";
-	char * pathNV12 = "../nv_temp/";
-	char * pathYUV = "/yuv_temp/";
+	char * pathNV12 = "../temp_nv12/";
+	char * pathYUV = "/temp_yuv/";
 
 	char * infile = "../video.mp4";
 	char * infile_h264 = "../video.h264";
-	char * infile_yuv = "../ds_480x272.yuv";
-	char * infile_mp4 = "video_sei.mp4";
+	char * infile_yuv = "../video.yuv";
+	char * infile_sei_mp4 = "../video_sei.mp4";
 	char * outfile = "../1.mp4";
-	//return testConvert(pathNV12, pathYUV);
-	//return testDecode(infile);
-	//return testDecodePath(inpath);
-	return testDecodeSEI(infile_mp4);
-	//return testEncode(infile_yuv, outfile);
-	//return testEncode2(infile, outfile);
-	return testFFmpeg(infile);
-	return testFFmpegIO(inpath);
-	return testFLV(inpath);
-	return TestHeader(infile);
-	return TestInterface(infile);
-	return testMediaControl(outfile);
-	return testMP4Encode(infile,outfile);
+
+	if (_stricmp(type, "convert") == 0)
+	{
+		return testConvert(pathNV12, pathYUV);
+	}
+	else if (_stricmp(type, "decode") == 0)
+	{
+		return testDecode(infile);
+	}
+	else if (_stricmp(type, "decodepath") == 0)
+	{
+		return testDecodePath(inpath);
+	}
+	else if (_stricmp(type, "sei") == 0)
+	{
+		return testDecodeSEI(infile_sei_mp4);
+	}
+	else if (_stricmp(type, "encode") == 0)
+	{
+		return testEncode(infile_yuv, outfile);
+	}
+	else if (_stricmp(type, "encode2") == 0)
+	{
+		return testEncode2(infile, outfile);
+	}
+	else if (_stricmp(type, "encode3") == 0)
+	{
+		return testEncode3(infile, outfile);
+	}
+	else if (_stricmp(type, "encode4") == 0)
+	{
+		return testMP4Encode(infile, outfile);
+	}
+	else if (_stricmp(type, "ffmpeg") == 0)
+	{
+		return testFFmpeg(infile);
+	}
+	else if (_stricmp(type, "ffmpegio") == 0)
+	{
+		return testFFmpegIO(inpath);
+	}
+	else if (_stricmp(type, "flv") == 0)
+	{
+		return testFLV(inpath);
+	}
+	else if (_stricmp(type, "header") == 0)
+	{
+		return TestHeader(infile);
+	}
+	else if (_stricmp(type, "interface") == 0)
+	{
+		return TestInterface(infile);
+	}
+	else if (_stricmp(type, "control") == 0)
+	{
+		return testMediaControl(outfile);
+	}
+	else
+	{
+		printf("not found type %s\n",type);
+	}
+	return 0;
 }
