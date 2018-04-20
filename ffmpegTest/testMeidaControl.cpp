@@ -1,4 +1,9 @@
 #include "MediaControl.h"
+#ifdef _WIN32
+#define sleep Sleep
+#else
+#include <unistd.h>
+#endif
 
 int testMediaControl(const char * file)
 {
@@ -10,7 +15,7 @@ int testMediaControl(const char * file)
 	while (true)
 	{
 		if (control->CheckIsEnd()) break;
-		Sleep(1);
+		sleep(1);
 	}
 	control->Close();
 	delete control;

@@ -4,7 +4,7 @@
 
 #include "MediaDecode.h"
 #include "EvoInterface/sei_packet.h"
-#ifndef _WIN32
+#ifdef _ANDROID
 #include "android/log.h"
 #endif
 
@@ -97,7 +97,7 @@ inline AVCodec *GetBestVideoDecoder(AVCodecID id,const char* n) {
         if (c_temp->id == id && c_temp->type == AVMEDIA_TYPE_VIDEO
             && c_temp->decode != NULL)
         {
-#ifndef _WIN32
+#ifdef _ANDROID
             __android_log_print(ANDROID_LOG_INFO,"native","Video H264 decode:%s\n",c_temp->name);
 #endif
         }
@@ -187,7 +187,7 @@ int MediaDecode::init(const char * name,int thread_count)
     AVCodec *codec = GetBestVideoDecoder(AV_CODEC_ID_H264,name);
     if(codec == NULL) codec = avcodec_find_decoder(AV_CODEC_ID_H264);
     if(codec == NULL) return AVERROR_EXTERNAL;
-#ifndef _WIN32
+#ifdef _ANDROID
     __android_log_print(ANDROID_LOG_INFO,"native","AVCodec:%s",codec->name);
 #endif
     codecContent = avcodec_alloc_context3(codec);
@@ -315,7 +315,7 @@ int MediaDecode::decode(uint8_t * data, int32_t size)
         uint8_t *buffer = NULL;
         uint32_t count = 256;
         ret = get_sei_content(data,size, TIME_STAMP_UUID,&buffer,&count);
-#ifndef _WIN32
+#ifdef _ANDROID
 //        __android_log_print(ANDROID_LOG_DEBUG,"JNI-DECODER","buffer = %s",buffer);
 #endif
         if(buffer != NULL)
@@ -343,7 +343,7 @@ int MediaDecode::decode(uint8_t * data, int32_t size)
             packet.flags = cflags;
 
 			free_sei_content(&buffer);
-#ifndef _WIN32
+#ifdef _ANDROID
 //            __android_log_print(ANDROID_LOG_DEBUG,"JNI-DECODER","pts:%lld dts:%lld",cpts,cdts);
 #endif
         } else
@@ -354,14 +354,14 @@ int MediaDecode::decode(uint8_t * data, int32_t size)
         int64_t timeBegin = av_gettime()/1000;
         ret = DecodePacket(&packet,&evoResult);
         int64_t timeEnd = av_gettime() / 1000;
-#ifndef _WIN32
+#ifdef _ANDROID
         __android_log_print(ANDROID_LOG_INFO,"native MediaDecode","use:%lld",timeEnd - timeBegin);
 #endif
     } else{
         int64_t timeBegin = av_gettime()/1000;
         ret = DecodePacket((EvoPacket*)NULL,&evoResult);
         int64_t timeEnd = av_gettime() / 1000;
-#ifndef _WIN32
+#ifdef _ANDROID
         __android_log_print(ANDROID_LOG_INFO,"native MediaDecode","use:%lld",timeEnd - timeBegin);
 #endif
     }

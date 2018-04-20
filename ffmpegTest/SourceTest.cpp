@@ -31,9 +31,17 @@ int testMediaControl(const char * file);
 int testMP4Encode(const char * file, const char * outFile);
 int testEncode3(const char * infile, const char * outfile);
 
+#ifdef _WIN32
 #pragma comment(lib,"EvoInterface.lib")
+#define strcasecmp _stricmp
+#else 
+#ifndef _LINUX
+#include <strings.h>
+#endif
+#endif
 
-#include "EvoInterface\sei_packet.h"
+#include <stdlib.h>
+#include "EvoInterface/sei_packet.h"
 
 int testIMU()
 {
@@ -91,59 +99,59 @@ int main(int argv ,char* argc[])
 	char * infile_sei_mp4 = "../video_sei.mp4";
 	char * outfile = "../1.mp4";
 
-	if (_stricmp(type, "convert") == 0)
+	if (strcasecmp(type, "convert") == 0)
 	{
 		return testConvert(pathNV12, pathYUV);
 	}
-	else if (_stricmp(type, "decode") == 0)
+	else if (strcasecmp(type, "decode") == 0)
 	{
 		return testDecode(infile);
 	}
-	else if (_stricmp(type, "decodepath") == 0)
+	else if (strcasecmp(type, "decodepath") == 0)
 	{
 		return testDecodePath(inpath);
 	}
-	else if (_stricmp(type, "sei") == 0)
+	else if (strcasecmp(type, "sei") == 0)
 	{
 		return testDecodeSEI(infile_sei_mp4);
 	}
-	else if (_stricmp(type, "encode") == 0)
+	else if (strcasecmp(type, "encode") == 0)
 	{
 		return testEncode(infile_yuv, outfile);
 	}
-	else if (_stricmp(type, "encode2") == 0)
+	else if (strcasecmp(type, "encode2") == 0)
 	{
 		return testEncode2(infile, outfile);
 	}
-	else if (_stricmp(type, "encode3") == 0)
+	else if (strcasecmp(type, "encode3") == 0)
 	{
 		return testEncode3(infile, outfile);
 	}
-	else if (_stricmp(type, "encode4") == 0)
+	else if (strcasecmp(type, "encode4") == 0)
 	{
 		return testMP4Encode(infile, outfile);
 	}
-	else if (_stricmp(type, "ffmpeg") == 0)
+	else if (strcasecmp(type, "ffmpeg") == 0)
 	{
 		return testFFmpeg(infile);
 	}
-	else if (_stricmp(type, "ffmpegio") == 0)
+	else if (strcasecmp(type, "ffmpegio") == 0)
 	{
 		return testFFmpegIO(inpath);
 	}
-	else if (_stricmp(type, "flv") == 0)
+	else if (strcasecmp(type, "flv") == 0)
 	{
 		return testFLV(inpath);
 	}
-	else if (_stricmp(type, "header") == 0)
+	else if (strcasecmp(type, "header") == 0)
 	{
 		return TestHeader(infile);
 	}
-	else if (_stricmp(type, "interface") == 0)
+	else if (strcasecmp(type, "interface") == 0)
 	{
 		return TestInterface(infile);
 	}
-	else if (_stricmp(type, "control") == 0)
+	else if (strcasecmp(type, "control") == 0)
 	{
 		return testMediaControl(outfile);
 	}

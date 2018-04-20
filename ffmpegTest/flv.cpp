@@ -1,7 +1,10 @@
 #include "flv.h"
-#include <Winsock2.h>
-
-#pragma comment(lib,"ws2_32.lib")
+#ifdef _WIN32
+	#include <Winsock2.h>
+	#pragma comment(lib,"ws2_32.lib")
+#else
+	#include <arpa/inet.h>
+#endif
 
 void FLVHeader(FILE * fp, bool hasVideo, bool hasAudio,uint8_t *data,uint32_t len)
 {

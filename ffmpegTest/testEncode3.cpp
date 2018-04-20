@@ -73,6 +73,7 @@ int testEncode3(const char * infile, const char * outfile)
 			if (packet->stream_index == videoIndex)
 			{
 				packet->pts = packet->dts;
+				//packet->dts = packet->pts;
 				encode.WriteVideo(packet);
 			}
 			else if (packet->stream_index == audioIndex)

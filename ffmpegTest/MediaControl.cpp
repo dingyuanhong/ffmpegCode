@@ -3,7 +3,7 @@
 //
 
 #include "MediaControl.h"
-#ifndef _WIN32
+#ifdef _ANDROID
 #include <android/log.h>
 #endif
 
@@ -368,7 +368,7 @@ void MediaControl::Run()
                 if(frame != NULL)
                 {
                     int64_t timeEnd = av_gettime() / 1000;
-#ifndef _WIN32
+#ifdef _ANDROID
                     __android_log_print(ANDROID_LOG_INFO,"native MeidaControl"," use:%lld\n", timeEnd - timeBegin);
 #endif
                     timeBegin = 0;
