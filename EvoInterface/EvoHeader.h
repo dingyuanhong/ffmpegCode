@@ -14,8 +14,9 @@ extern "C" {
 #include "libavutil/avutil.h"
 #include "libavutil/imgutils.h"
 #include "libavutil/time.h"
+#include "libavfilter/avfilter.h"
 
-#ifdef USE_NEW_API
+#ifdef USE_ANDROID
 #include "libavcodec/jni.h"
 #endif
 

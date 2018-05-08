@@ -2,6 +2,7 @@
 #include "Encode.h"
 #include "SEIEncode.h"
 #include "exterlFunction.h"
+#include <Windows.h>
 
 //"../Vid0616000023.mp4"
 int testDecodeSEI(const char * file)
@@ -19,12 +20,6 @@ int testDecodeSEI(const char * file)
 	}
 
 	AVStream * stream = source.GetVideoStream();
-	AVCodecContext * sourceContext = stream->codec;
-
-	if (sourceContext != NULL && sourceContext->codec != NULL)
-	{
-		printf("Stream DECODE:%s\n", sourceContext->codec->name);
-	}
 
 	VideoDecoder *decoder = NULL;
 	AVCodecContext	*codecContext = NULL;
@@ -50,6 +45,12 @@ int testDecodeSEI(const char * file)
 	}
 	else
 	{
+#ifndef USE_NEW_API
+		AVCodecContext * sourceContext = stream->codec;
+		if (sourceContext != NULL && sourceContext->codec != NULL)
+		{
+			printf("Stream DECODE:%s\n", sourceContext->codec->name);
+		}
 		//使用自身解码器解码
 		AVCodec *codec = (AVCodec*)sourceContext->codec;
 		if (codec == NULL) codec = avcodec_find_decoder(sourceContext->codec_id);
@@ -60,8 +61,11 @@ int testDecodeSEI(const char * file)
 		}
 
 		decoder = new VideoDecoder(sourceContext);
+#endif
 	}
+#ifndef USE_NEW_API
 	AVBitStreamFilterContext *bsfc = av_bitstream_filter_init("h264_mp4toannexb");
+#endif
 	int index = 0;
 	while (true)
 	{
@@ -81,7 +85,7 @@ int testDecodeSEI(const char * file)
 					printf("");
 				}
 				float * imu = (float*)buffer;
-				printf("pts:%lld dts:%lld imu:%f  %f  %f  %f  %f  %f  %f  %f  %f\n", out->pts, out->dts, imu[0], imu[1], imu[2], imu[3], imu[4], imu[5], imu[6], imu[7], imu[8]);
+				//printf("pts:%lld dts:%lld imu:%f  %f  %f  %f  %f  %f  %f  %f  %f\n", out->pts, out->dts, imu[0], imu[1], imu[2], imu[3], imu[4], imu[5], imu[6], imu[7], imu[8]);
 				free_sei_content(&buffer);
 			}
 			else {
@@ -100,12 +104,12 @@ int testDecodeSEI(const char * file)
 				if (buffer != NULL)
 				{
 					float * imu = (float*)buffer;
-					printf("pts:%lld dts:%lld imu:%f %f %f %f %f %f %f %f %f\n", out->pts, out->dts, imu[0], imu[1], imu[2], imu[3], imu[4], imu[5], imu[6], imu[7], imu[8]);
+					//printf("pts:%lld dts:%lld imu:%f %f %f %f %f %f %f %f %f\n", out->pts, out->dts, imu[0], imu[1], imu[2], imu[3], imu[4], imu[5], imu[6], imu[7], imu[8]);
 					free_sei_content(&buffer);
 				}
 				else {
 					//printf("no find sei.\n");
-					printf("pts:%lld dts:%lld\n", out->pts, out->dts);
+					//printf("pts:%lld dts:%lld\n", out->pts, out->dts);
 				}
 			}
 			
@@ -118,6 +122,7 @@ int testDecodeSEI(const char * file)
 
 			if (outFrame != NULL)
 			{
+				printf("Decode pts:%lld %lld\n", outFrame->pts,outFrame->pkt_dts);
 				FreeAVFrame(&outFrame);
 			}
 
@@ -128,7 +133,38 @@ int testDecodeSEI(const char * file)
 			break;
 		}
 	}
+
+
+	AVPacket* empty_packet = av_packet_alloc();
+	av_new_packet(empty_packet,0);
+
+	DWORD time = GetTickCount();
+	while (true)
+	{
+		AVFrame *outFrame = NULL;
+
+		//printf("Decode begin:%lld\n", av_gettime() / 1000);
+		decoder->Decode(empty_packet, &outFrame);
+		//printf("Decode end:%lld Success:%d\n", av_gettime() / 1000, (outFrame != NULL));
+
+		if (outFrame != NULL)
+		{
+			printf("Decode pts:%lld %lld\n", outFrame->pts, outFrame->pkt_dts);
+			FreeAVFrame(&outFrame);
+		}
+		else
+		{
+			if(GetTickCount() - time > 5000)
+			{
+				break;
+			}
+		}
+	}
+	av_packet_free(&empty_packet);
+
+#ifndef USE_NEW_API
 	av_bitstream_filter_close(bsfc);
+#endif
 
 	if (decoder != NULL)
 	{

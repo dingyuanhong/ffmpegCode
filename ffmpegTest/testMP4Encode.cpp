@@ -17,7 +17,16 @@ int testMP4Encode(const char * file,const char * outFile)
 	}
 
 	AVStream * stream = source.GetVideoStream();
-	AVCodecContext * sourceContext = stream->codec;
+	
+#ifdef USE_NEW_API
+	int width = stream->codecpar->width;
+	int height = stream->codecpar->height;
+	AVPixelFormat pixelFormat = (AVPixelFormat)stream->codecpar->format;
+#else
+	int width = stream->codec->width;
+	int height = stream->codec->height;
+	AVPixelFormat pixelFormat = stream->codec->pix_fmt;
+#endif
 
 	VideoDecoder *decoder = NULL;
 	AVCodecContext	*codecContext = NULL;
@@ -43,6 +52,8 @@ int testMP4Encode(const char * file,const char * outFile)
 	}
 	else
 	{
+#ifndef USE_NEW_API
+		AVCodecContext * sourceContext = stream->codec;
 		//使用自身解码器解码
 		AVCodec *codec = (AVCodec*)sourceContext->codec;
 		if (codec == NULL) codec = avcodec_find_decoder(sourceContext->codec_id);
@@ -53,6 +64,7 @@ int testMP4Encode(const char * file,const char * outFile)
 		}
 
 		decoder = new VideoDecoder(sourceContext);
+#endif
 	}
 	/****************************************************************/
 
@@ -63,7 +75,7 @@ int testMP4Encode(const char * file,const char * outFile)
 	{
 		return -1;
 	}
-	ret = encode.NewVideoStream(sourceContext->width, sourceContext->height, sourceContext->pix_fmt);
+	ret = encode.NewVideoStream(width, height, pixelFormat);
 	if (ret != 0)
 	{
 		return -1;
@@ -71,13 +83,18 @@ int testMP4Encode(const char * file,const char * outFile)
 	encode.WriteHeader();
 
 	AVStream * encodeStream = encode.GetVideoStream();
-	AVCodecContext * encodeCodecContext = encode.GetVideoStream()->codec;
+	AVCodecContext * encodeCodecContext = encode.GetVideoContext();
 
 	AVFrame * frame = av_frame_alloc();
+#ifdef USE_NEW_API
+	int picture_size = av_image_get_buffer_size(encodeCodecContext->pix_fmt, encodeCodecContext->width, encodeCodecContext->height,1);
+	uint8_t * picture_buf = (uint8_t *)av_malloc(picture_size);
+	av_image_fill_arrays(frame->data, frame->linesize, picture_buf, encodeCodecContext->pix_fmt, encodeCodecContext->width, encodeCodecContext->height,1);
+#else
 	int picture_size = avpicture_get_size(encodeCodecContext->pix_fmt, encodeCodecContext->width, encodeCodecContext->height);
 	uint8_t * picture_buf = (uint8_t *)av_malloc(picture_size);
 	avpicture_fill((AVPicture *)frame, picture_buf, encodeCodecContext->pix_fmt, encodeCodecContext->width, encodeCodecContext->height);
-
+#endif
 	/****************************************************************/
 	int i = 0;
 	while (true)

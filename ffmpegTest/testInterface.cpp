@@ -22,12 +22,6 @@ int TestInterface(const char * file)
 	}
 
 	AVStream * stream = source.GetVideoStream();
-	AVCodecContext * sourceContext = stream->codec;
-
-	if (sourceContext != NULL && sourceContext->codec != NULL)
-	{
-		printf("Stream DECODE:%s\n", sourceContext->codec->name);
-	}
 
 	VideoDecoder *decoder = NULL;
 	AVCodecContext	*codecContext = NULL;
@@ -53,6 +47,14 @@ int TestInterface(const char * file)
 	}
 	else
 	{
+#ifndef USE_NEW_API
+		AVCodecContext * sourceContext = stream->codec;
+
+		if (sourceContext != NULL && sourceContext->codec != NULL)
+		{
+			printf("Stream DECODE:%s\n", sourceContext->codec->name);
+		}
+
 		//使用自身解码器解码
 		AVCodec *codec = (AVCodec*)sourceContext->codec;
 		if (codec == NULL) codec = avcodec_find_decoder(sourceContext->codec_id);
@@ -63,13 +65,20 @@ int TestInterface(const char * file)
 		}
 
 		decoder = new VideoDecoder(sourceContext);
+#endif
 	}
 
 	EvoVideoConvert convert;
 	struct EvoVideoInfo info;
-	info.Width = sourceContext->width;
-	info.Height = sourceContext->height;
-	info.Format = sourceContext->pix_fmt;
+#ifdef USE_NEW_API
+	info.Width = stream->codecpar->width;
+	info.Height = stream->codecpar->height;
+	info.Format = (AVPixelFormat)stream->codecpar->format;
+#else
+	info.Width = stream->codec->width;
+	info.Height = stream->codec->height;
+	info.Format = stream->codec->pix_fmt;
+#endif
 
 	struct EvoVideoInfo des = info;
 	des.Format = AV_PIX_FMT_NV12;

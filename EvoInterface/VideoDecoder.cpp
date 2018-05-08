@@ -158,6 +158,10 @@ int  VideoDecoder::Decode(AVPacket *packet, AVFrame **evoResult)
 		gotFrame = 1;
 	}
 #else
+	if (packet == NULL)
+	{
+		return -1;
+	}
 	int decoded = avcodec_decode_video2(this->VideoCodecCtx, VideoFrame, &gotFrame, packet);
 	if (decoded < 0) {
 		if (decoded == AVERROR(EAGAIN)) return 0;
