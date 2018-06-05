@@ -11,6 +11,8 @@ AudioDecoder::AudioDecoder(AVCodecContext	*codec)
 	this->Packet = (AVPacket *)av_malloc(sizeof(AVPacket));
 	memset(this->Packet, 0, sizeof(AVPacket));
 	av_init_packet(this->Packet);
+
+	this->packet_count = 0;
 }
 
 AudioDecoder::~AudioDecoder()
@@ -201,7 +203,123 @@ int AudioDecoder::DecodePacket(AVPacket *packet, AVFrame **evoResult)
 		av_frame_unref(this->AudioFrame);
 		return 1;
 	}
+	else {
+		packet_count++;
+	}
 	return 0;
+}
+
+int AudioDecoder::DecodePacket(AVFrame **evoResult)
+{
+	int gotFrame = 0;
+
+	if (evoResult != NULL)
+	{
+		*evoResult = NULL;
+	}
+#ifndef USE_NEW_API
+	AVPacket packet;
+	av_init_packet(&packet);
+	packet.size = 0;
+	packet.buf = NULL;
+
+	int decoded = avcodec_decode_audio4(this->AudioCodecCtx, AudioFrame, &gotFrame, &packet);
+	if (decoded < 0) {
+		if (decoded == AVERROR(EAGAIN)) return 0;
+		char errbuf[1024] = { 0 };
+		av_strerror(decoded, errbuf, 1024);
+		LOGA("VideoDecoder::DecodePacket:avcodec_decode_video2:%d(%s).\n", decoded, errbuf);
+		if (decoded == AVERROR_INVALIDDATA) return 0;
+		if (decoded == AVERROR_EOF) return -1;
+		if (decoded == AVERROR(EINVAL)) return -1;
+		if (AVERROR(ENOMEM)) return -1;
+		return -1;
+	}
+#else
+	int decoded = 0;
+	if (packet != NULL)
+	{
+		decoded = avcodec_send_packet(this->AudioCodecCtx, packet);
+		if (decoded < 0)
+		{
+			if (decoded == AVERROR(EAGAIN)) return 0;
+			char errbuf[1024] = { 0 };
+			av_strerror(decoded, errbuf, 1024);
+			LOGA("AudioDecoder::DecodePacket:avcodec_send_packet:%d(%s).\n", decoded, errbuf);
+			if (decoded == AVERROR_EOF) return -1;
+			if (decoded == AVERROR(EINVAL)) return -1;
+			if (AVERROR(ENOMEM)) return -1;
+			return -1;
+		}
+	}
+
+	decoded = avcodec_receive_frame(this->AudioCodecCtx, this->AudioFrame);
+	if (decoded < 0)
+	{
+		if (decoded == AVERROR(EAGAIN)) return 0;
+		char errbuf[1024] = { 0 };
+		av_strerror(decoded, errbuf, 1024);
+		LOGA("AudioDecoder::DecodePacket:avcodec_receive_frame:%d(%s).\n", decoded, errbuf);
+		if (decoded == AVERROR_EOF) return -1;
+		if (decoded == AVERROR(EINVAL)) return -1;
+		return -1;
+	}
+	else
+	{
+		gotFrame = 1;
+	}
+#endif
+	if (gotFrame) {
+		packet_count--;
+		EvoAudioInfo audioInfo = GetCorrectTargetInfo();
+		AVFrame * audioFrame = CreateAVFrame(audioInfo, AudioFrame, 1);
+		if (audioFrame != NULL)
+		{
+			AVFrame * frame = audioFrame;
+
+			int ret = this->AudioResampling(this->AudioFrame, frame->data[0], frame->pkt_size);
+			frame->pts = this->AudioFrame->pts;
+#ifndef USE_NEW_API
+			frame->pkt_pts = this->AudioFrame->pkt_pts;
+#endif
+			frame->pkt_dts = this->AudioFrame->pkt_dts;
+			/*frame->nb_samples = this->AudioFrame->nb_samples;
+			frame->channels = this->AudioFrame->channels;
+			frame->channel_layout = this->AudioFrame->channel_layout;
+			frame->format = AV_SAMPLE_FMT_S16;
+			frame->sample_rate = this->AudioCodecCtx->sample_rate;*/
+
+			int64_t pts = frame->pts == AV_NOPTS_VALUE ?
+#ifndef USE_NEW_API
+				frame->pkt_pts == AV_NOPTS_VALUE ?
+#endif
+				frame->pkt_dts == AV_NOPTS_VALUE ?
+				AV_NOPTS_VALUE
+				: frame->pkt_dts
+#ifndef USE_NEW_API
+				: frame->pkt_pts
+#endif
+				: frame->pts;
+			int64_t timeStamp = GetAudioTimeStamp(AudioCodecCtx->time_base, pts, frame->nb_samples, frame->sample_rate);
+
+			if (evoResult != NULL)
+			{
+				*evoResult = audioFrame;
+			}
+			else
+			{
+				FreeAVFrame(&audioFrame);
+			}
+		}
+		else
+		{
+			av_frame_unref(this->AudioFrame);
+			return -1;
+		}
+		av_frame_unref(this->AudioFrame);
+		return 1;
+	}
+	return packet_count;
 }
 
 AVFrame* AudioDecoder::Decode(AVPacket *packet)
@@ -269,6 +387,7 @@ AVFrame* AudioDecoder::Decode(AVPacket *packet)
 		}
 		else
 		{
+			packet_count++;
 			return NULL;
 		}
 	}

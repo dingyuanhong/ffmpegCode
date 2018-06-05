@@ -16,6 +16,10 @@ inline AVFormatContext * avOpenFile(const char * file)
 	ret = avformat_find_stream_info(formatContext, NULL);
 	if (ret != 0)
 	{
+		char errbuf[1024] = { 0 };
+		av_strerror(ret, errbuf, 1024);
+		printf("error avOpenFile(%s):%d(%s).\n",file, ret, errbuf);
+
 		avformat_close_input(&formatContext);
 		return NULL;
 	}
@@ -198,22 +202,3 @@ inline unsigned int GetPictureSize(AVPixelFormat Format, int Width, int Height)
 #endif
 	return dstSize;
 }
-
-#ifndef USE_NEW_API
-inline AVPacket * av_packet_alloc()
-{
-	AVPacket * packet = (AVPacket*)av_malloc(sizeof(AVPacket));
-	av_init_packet(packet);
-	return packet;
-}
-
-inline void av_packet_free(AVPacket **ppacket)
-{
-	if (ppacket == NULL) return;
-	AVPacket *packet = *ppacket;
-	if (packet == NULL) return;
-	av_free_packet(packet);
-	av_free(packet);
-	*ppacket = NULL;
-}
-#endif

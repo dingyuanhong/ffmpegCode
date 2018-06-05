@@ -30,6 +30,13 @@ int TestInterface(const char * file);
 int testMediaControl(const char * file);
 int testMP4Encode(const char * file, const char * outFile);
 int testEncode3(const char * infile, const char * outfile);
+int testADTS(const char * infile, const char * outfile);
+int decodeAAC(const char * infile, const char * outfile);
+void printADTS(const char * infile);
+int processAAC(const char * infile, const char * outfile);
+
+//aac≤‚ ‘
+int simplest_aac_parser(char *url);
 
 #ifdef _WIN32
 #pragma comment(lib,"EvoInterface.lib")
@@ -88,6 +95,9 @@ int main(int argv ,char* argc[])
 	{
 		type = argc[1];
 	}
+	else {
+		return -1;
+	}
 
 	char * inpath = "../temp_frame/";
 	char * pathNV12 = "../temp_nv12/";
@@ -98,6 +108,8 @@ int main(int argv ,char* argc[])
 	char * infile_yuv = "../video.yuv";
 	char * infile_sei_mp4 = "../video_sei.mp4";
 	char * outfile = "../1.mp4";
+	char * outfile_aac = "../1.aac";
+	char * outfile_pcm = "../1.pcm";
 
 	if (strcasecmp(type, "convert") == 0)
 	{
@@ -154,6 +166,26 @@ int main(int argv ,char* argc[])
 	else if (strcasecmp(type, "control") == 0)
 	{
 		return testMediaControl(outfile);
+	}
+	else if (strcasecmp(type, "adts") == 0)
+	{
+		return testADTS(infile, outfile_aac);
+	}
+	else if (strcasecmp(type, "adtso") == 0)
+	{
+		return processAAC(infile, outfile_aac);
+	}
+	else if (strcasecmp(type, "adtsd") == 0)
+	{
+		return decodeAAC(outfile_aac, outfile_pcm);
+	}
+	else if (strcasecmp(type, "adtsp") == 0)
+	{
+		printADTS(outfile_aac);
+	}
+	else if (strcasecmp(type, "aac") == 0)
+	{
+		simplest_aac_parser(outfile_aac);
 	}
 	else
 	{

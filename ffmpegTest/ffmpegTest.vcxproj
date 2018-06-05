@@ -158,6 +158,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AACEncoder.cpp" />
+    <ClCompile Include="AEncode.cpp" />
     <ClCompile Include="Encode.cpp" />
     <ClCompile Include="flv.cpp" />
     <ClCompile Include="ImageFile.cpp" />
@@ -165,6 +167,8 @@
     <ClCompile Include="MediaDecode.cpp" />
     <ClCompile Include="SEIEncode.cpp" />
     <ClCompile Include="SourceTest.cpp" />
+    <ClCompile Include="testAAC.cpp" />
+    <ClCompile Include="testADTS.cpp" />
     <ClCompile Include="testConvert.cpp" />
     <ClCompile Include="testDecode.cpp" />
     <ClCompile Include="testDecodePath.cpp" />
@@ -181,6 +185,8 @@
     <ClCompile Include="testMP4Encode.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AACEncoder.h" />
+    <ClInclude Include="AEncode.h" />
     <ClInclude Include="Encode.h" />
     <ClInclude Include="EvHeade.h" />
     <ClInclude Include="exterlFunction.h" />
@@ -189,6 +195,7 @@
     <ClInclude Include="MediaControl.h" />
     <ClInclude Include="MediaDecode.h" />
     <ClInclude Include="SEIEncode.h" />
+    <ClInclude Include="TransformADTS.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

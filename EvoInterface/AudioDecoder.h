@@ -23,6 +23,8 @@ public:
 	void Flush();
 	int DecodeFrame(EvoFrame *packet, AVFrame **evoResult);
 	int DecodePacket(AVPacket *packet, AVFrame **evoResult);
+
+	int DecodePacket(AVFrame **evoResult);
 private:
 	virtual AVFrame* CreateAVFrame(EvoAudioInfo	audioInfo, AVFrame *Frame, int align);
 	virtual void FreeAVFrame(AVFrame** frame);
@@ -37,6 +39,7 @@ private:
 	EvoAudioInfo	AudioInfo;
 	AVPacket *Packet;
 	int64_t audio_frame_next_pts;
+	int packet_count;
 };
 
 
