@@ -109,7 +109,7 @@ int Encode::NewVideoStream(AVStream * stream)
 	avcodec_copy_context(codecCtx, stream->codec);
 #endif
 
-	codecCtx->codec_id = output_->video_codec;
+	//codecCtx->codec_id = output_->video_codec;
 	codecCtx->codec_tag = 0;
 	codecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
 
@@ -158,7 +158,7 @@ int Encode::NewAudioStream(AVStream * stream)
 	avcodec_copy_context(codecCtx, stream->codec);
 #endif
 
-	codecCtx->codec_id = output_->audio_codec;
+	//codecCtx->codec_id = output_->audio_codec;
 	codecCtx->codec_tag = 0;
 	codecCtx->codec_type = AVMEDIA_TYPE_AUDIO;
 
@@ -439,7 +439,7 @@ int OriginalEncode::NewVideoStream(int width, int height, AVPixelFormat format, 
 #endif
 	AVCodecContext* codecCtx = videoCodecCtx_;
 
-	//codecCtx->codec_id =AV_CODEC_ID_HEVC;  
+	//codecCtx->codec_id = AV_CODEC_ID_H264;
 	codecCtx->codec_id = output_->video_codec;
 	codecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
 
@@ -492,7 +492,7 @@ int OriginalEncode::NewVideoStream(int width, int height, AVPixelFormat format, 
 	if (codecCtx->codec_id == AV_CODEC_ID_H264) {
 		av_dict_set(&param, "preset", "slow", 0);
 		av_dict_set(&param, "tune", "zerolatency", 0);
-		av_dict_set(&param, "profile", "main", 0);
+		av_dict_set(&param, "profile", "baseline", 0);
 	}
 	//H.265  
 	if (codecCtx->codec_id == AV_CODEC_ID_H265) {

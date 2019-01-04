@@ -8,6 +8,7 @@ class SEIEncode
 	:public OriginalEncode
 {
 public:
+	SEIEncode();
 	virtual int EncodeVideo(AVFrame* frame);
 	virtual int FlushVideo();
 };

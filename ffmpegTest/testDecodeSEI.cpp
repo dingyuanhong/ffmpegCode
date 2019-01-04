@@ -3,6 +3,7 @@
 #include "SEIEncode.h"
 #include "exterlFunction.h"
 #include <Windows.h>
+#include "ImageFile.h"
 
 //"../Vid0616000023.mp4"
 int testDecodeSEI(const char * file)
@@ -63,6 +64,20 @@ int testDecodeSEI(const char * file)
 		decoder = new VideoDecoder(sourceContext);
 #endif
 	}
+
+	EvoVideoConvert convert;
+	struct EvoVideoInfo info;
+	info.Width = 0;
+	info.Height = 0;
+	info.Format = AV_PIX_FMT_NONE;
+
+	struct EvoVideoInfo des = info;
+	des.Width = 3040;
+	des.Height = 1520;
+	des.Format = AV_PIX_FMT_BGR24;
+	convert.Initialize(info, des);
+	decoder->Attach(&convert);
+
 #ifndef USE_NEW_API
 	AVBitStreamFilterContext *bsfc = av_bitstream_filter_init("h264_mp4toannexb");
 #endif
@@ -104,7 +119,7 @@ int testDecodeSEI(const char * file)
 				if (buffer != NULL)
 				{
 					float * imu = (float*)buffer;
-					printf("pts:%lld dts:%lld imu:%f %f %f %f %f %f %f %f %f\n", out->pts, out->dts, imu[0], imu[1], imu[2], imu[3], imu[4], imu[5], imu[6], imu[7], imu[8]);
+					//printf("pts:%lld dts:%lld imu:%f %f %f %f %f %f %f %f %f\n", out->pts, out->dts, imu[0], imu[1], imu[2], imu[3], imu[4], imu[5], imu[6], imu[7], imu[8]);
 					free_sei_content(&buffer);
 				}
 				else {
@@ -122,7 +137,11 @@ int testDecodeSEI(const char * file)
 
 			if (outFrame != NULL)
 			{
-				//printf("Decode pts:%lld %lld\n", outFrame->pts,outFrame->pkt_dts);
+				printf("Decode pts:%lld %lld\n", outFrame->pts,outFrame->pkt_dts);
+				printf("width:%d height:%d\n", outFrame->width, outFrame->height);
+#ifdef _WIN32
+				SaveAsBMP(outFrame, outFrame->width, outFrame->height, index, 24);
+#endif
 				FreeAVFrame(&outFrame);
 			}
 

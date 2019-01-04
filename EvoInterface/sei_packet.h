@@ -39,6 +39,19 @@ int32_t get_mp4_sei_content(uint8_t * packet, uint32_t size, const uint8_t *uuid
 //获取sei内容
 int32_t get_sei_content(uint8_t * packet, uint32_t size, const uint8_t *uuid, uint8_t ** pdata, uint32_t *psize);
 
+typedef struct NALU {
+	uint8_t * data;		//内存起始
+	uint32_t index;		//偏移
+	uint32_t size;		//大小
+	uint32_t codeSize;  //标志头大小
+	uint8_t type;		//类型
+}NALU;
+
+//获取sei位置及大小
+int32_t get_content_nalu(uint8_t * packet, uint32_t size, NALU **nalu, int32_t * count);
+
+int32_t find_nalu_sei(NALU * nalu, int count, const uint8_t *uuid);
+
 //释放sei内容缓冲区
 void free_sei_content(uint8_t**pdata);
 

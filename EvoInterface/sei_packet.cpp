@@ -516,6 +516,218 @@ int get_sei_content(uint8_t * packet, uint32_t size, const uint8_t *uuid, uint8_
 	return -1;
 }
 
+
+int32_t get_content_nalu_mp4(uint8_t * packet, uint32_t size, NALU **pnalu){
+	uint8_t * data = packet;
+	int32_t count = 0;
+	int32_t codeSize = 4;
+	//当前NALU
+	while (data < packet + size) {
+		//MP4格式起始码/长度
+		uint32_t *nalu_length = (uint32_t *)data;
+		uint32_t nalu_size = reversebytes(*nalu_length);
+		//NALU header
+		uint8_t type = (uint8_t)(*(data + codeSize) & 0x1F);
+
+		count++;
+
+		data += codeSize + nalu_size;
+	}
+
+	if (count <= 0) {
+		return -1;
+	}
+
+	NALU * nalu = (NALU*)malloc(sizeof(NALU)*count);
+	int32_t index = 0;
+	data = packet;
+	while (data < packet + size) {
+		//MP4格式起始码/长度
+		uint32_t *nalu_length = (uint32_t *)data;
+		uint32_t nalu_size = reversebytes(*nalu_length);
+		//NALU header
+		uint8_t type = (uint8_t)(*(data + 4) & 0x1F);
+
+		nalu[index].data = packet;
+		nalu[index].size = nalu_size;
+		nalu[index].codeSize = codeSize;
+		nalu[index].type = type;
+		nalu[index].index = data - packet;
+
+		index++;
+
+		data += codeSize + nalu_size;
+	}
+	
+	if (pnalu != NULL) {
+		*pnalu = nalu;
+	}
+	else {
+		free(nalu);
+	}
+
+	return index;
+}
+
+int32_t get_content_nalu_annexb(uint8_t * packet, uint32_t size, NALU **pnalu) {
+	int32_t count = 0;
+
+	uint8_t * data = packet;
+	uint32_t data_size = size;
+
+	uint8_t * nalu_element = NULL;
+	int32_t nalu_element_size = 0;
+	while (data < packet + size) {
+		int32_t index = find_annexb(data, data_size);
+		int32_t second_index = 0;
+		if (index != -1)
+		{
+			uint32_t startCodeSize = get_annexb_size(data + index, data_size - index);
+			second_index = find_annexb(data + index + startCodeSize, data_size - index - startCodeSize);
+			if (second_index >= 0)
+			{
+				second_index += startCodeSize;
+			}
+		}
+
+		if (index != -1)
+		{
+			if (second_index == -1)
+			{
+				second_index = data_size;
+			}
+			nalu_element = data + index;
+			nalu_element_size = second_index;
+			data += second_index;
+			data_size -= second_index;
+		}
+		else
+		{
+			return -1;
+		}
+		if (nalu_element != NULL && nalu_element_size != 0)
+		{
+			if ((int32_t)(packet + size - nalu_element)  < nalu_element_size)
+			{
+				nalu_element_size = (int32_t)(packet + size - nalu_element);
+			}
+
+			uint32_t startCodeSize = get_annexb_size(nalu_element, nalu_element_size);
+			if (startCodeSize == 0) continue;
+			
+			count++;
+		}
+	}
+
+	if (count <= 0) {
+		return -1;
+	}
+
+	data = packet;
+	data_size = size;
+
+	nalu_element = NULL;
+	nalu_element_size = 0;
+
+
+	NALU * nalu = (NALU*)malloc(sizeof(NALU)*count);
+	int32_t nalu_index = 0;
+
+	while (data < packet + size) {
+		int32_t index = find_annexb(data, data_size);
+		int32_t second_index = 0;
+		if (index != -1)
+		{
+			uint32_t startCodeSize = get_annexb_size(data + index, data_size - index);
+			second_index = find_annexb(data + index + startCodeSize, data_size - index - startCodeSize);
+			if (second_index >= 0)
+			{
+				second_index += startCodeSize;
+			}
+		}
+
+		if (index != -1)
+		{
+			if (second_index == -1)
+			{
+				second_index = data_size;
+			}
+			nalu_element = data + index;
+			nalu_element_size = second_index;
+			data += second_index;
+			data_size -= second_index;
+		}
+		else
+		{
+			return -1;
+		}
+		if (nalu_element != NULL && nalu_element_size != 0)
+		{
+			if ((int32_t)(packet + size - nalu_element)  < nalu_element_size)
+			{
+				nalu_element_size = (int32_t)(packet + size - nalu_element);
+			}
+
+			uint32_t startCodeSize = get_annexb_size(nalu_element, nalu_element_size);
+			if (startCodeSize == 0) continue;
+
+			uint8_t type = (uint8_t)(nalu_element[startCodeSize] & 0x1F);
+			nalu[nalu_index].data = packet;
+			nalu[nalu_index].size = nalu_element_size;
+			nalu[nalu_index].codeSize = startCodeSize;
+			nalu[nalu_index].type = type;
+			nalu[nalu_index].index = nalu_element - packet;
+
+			nalu_index++;
+		}
+	}
+
+	if (pnalu != NULL) {
+		*pnalu = nalu;
+	}
+	else {
+		free(nalu);
+	}
+
+	return nalu_index;
+}
+
+int32_t get_content_nalu(uint8_t * packet, uint32_t size, NALU **nalu,int32_t * count)
+{
+	uint32_t isAnnexb = check_is_annexb(packet, size);
+	//暂时只处理MP4封装,annexb暂为处理
+	if (isAnnexb)
+	{
+		*count = get_content_nalu_annexb(packet, size, nalu);
+		return *count;
+	}
+	else
+	{
+		*count = get_content_nalu_mp4(packet,size,nalu);
+		return *count;
+	}
+}
+
+int32_t find_nalu_sei(NALU * nalu, int count, const uint8_t *uuid)
+{
+	if (nalu == NULL) return -1;
+	for (int i = 0; i < count; i++) {
+		if (nalu[i].type == 6) {
+			uint8_t * sei_data = nalu[i].data + nalu[i].index + nalu[i].codeSize + 1;
+			int32_t sei_data_length = nalu[i].size - nalu[i].codeSize - 1;
+			sei_content content = { 0 };
+			int32_t ret = get_sei_buffer(sei_data, sei_data_length, &content);
+			if (ret != -1)
+			{
+				if (memcmp(uuid, content.uuid, UUID_SIZE) == 0) {
+					return i;
+				}
+			}
+		}
+	}
+	return -1;
+}
+
 void free_sei_content(uint8_t**pdata)
 {
 	if (pdata == NULL) return;

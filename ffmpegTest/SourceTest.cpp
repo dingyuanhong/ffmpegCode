@@ -34,7 +34,7 @@ int testADTS(const char * infile, const char * outfile);
 int decodeAAC(const char * infile, const char * outfile);
 void printADTS(const char * infile);
 int processAAC(const char * infile, const char * outfile);
-
+int getExtraData(const char * file);
 //aac≤‚ ‘
 int simplest_aac_parser(char *url);
 
@@ -186,6 +186,10 @@ int main(int argv ,char* argc[])
 	else if (strcasecmp(type, "aac") == 0)
 	{
 		simplest_aac_parser(outfile_aac);
+	}
+	else if (strcasecmp(type, "extra") == 0)
+	{
+		getExtraData(infile);
 	}
 	else
 	{

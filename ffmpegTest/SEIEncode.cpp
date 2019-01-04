@@ -53,12 +53,13 @@ static int resetPacket(AVPacket * packet, AVPacket * pkt)
 	return 0;
 }
 
+SEIEncode::SEIEncode() {
+	av_init_packet(&videoPacket_);
+}
+
 int SEIEncode::EncodeVideo(AVFrame* frame)
 {
 	int got_picture = 0;
-	av_init_packet(&videoPacket_);
-	videoPacket_.data = NULL;
-	videoPacket_.size = 0;
 #ifdef USE_NEW_API
 	int ret = avcodec_send_frame(videoCodecCtx_, frame);
 	if(ret == 0) ret = avcodec_receive_packet(videoCodecCtx_,&videoPacket_);
