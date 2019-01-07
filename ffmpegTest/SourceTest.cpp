@@ -86,6 +86,30 @@ int testIMU()
 	return 0;
 }
 
+int testSEI() {
+	uint8_t source[9] = { 0};
+	uint32_t source_len = 9;
+
+	uint32_t annexbType = 1;
+	uint32_t len = get_sei_packet_size((const uint8_t*)source, source_len, annexbType);
+	uint8_t * buffer = (uint8_t*)malloc(len);
+
+	fill_sei_packet(buffer, annexbType, IMU_UUID, (const uint8_t*)source, source_len);
+
+	uint8_t * data = NULL;
+	uint32_t size = 0;
+	get_sei_content(buffer, len, IMU_UUID, &data, &size);
+	if (data != NULL)
+	{
+		printf("%d",memcmp(data, source, source_len));
+
+		free_sei_content(&data);
+	}
+	free(buffer);
+	return 0;
+
+}
+
 #include <string.h>
 
 int main(int argv ,char* argc[])
@@ -190,6 +214,10 @@ int main(int argv ,char* argc[])
 	else if (strcasecmp(type, "extra") == 0)
 	{
 		getExtraData(infile);
+	}
+	else if (strcasecmp(type, "sei_test") == 0)
+	{
+		testSEI();
 	}
 	else
 	{

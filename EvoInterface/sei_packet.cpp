@@ -737,3 +737,67 @@ void free_sei_content(uint8_t**pdata)
 		*pdata = NULL;
 	}
 }
+
+
+//调整packet内存内容
+uint32_t adjust_content_imu(uint8_t * packet, uint32_t size)
+{
+	uint8_t * imu_data = NULL;
+	uint32_t imu_size = 0;
+	int imu_get_size = get_sei_content(packet, size, IMU_UUID, &imu_data, &imu_size);
+	uint8_t tmp_header[4] = { 0 };
+	bool header_change = false;
+	if (imu_get_size == -1 && size > 4) {
+		tmp_header[0] = packet[0];
+		tmp_header[1] = packet[1];
+		tmp_header[2] = packet[2];
+		tmp_header[3] = packet[3];
+
+		packet[0] = 0x00;
+		packet[1] = 0x00;
+		packet[2] = 0x00;
+		packet[3] = 0x01;
+		header_change = true;
+		imu_get_size = get_sei_content(packet, size, IMU_UUID, &imu_data, &imu_size);
+	}
+
+	if (imu_get_size > 0) {
+		NALU * nalu = NULL;
+		int nalu_count = 0;
+		//获取NALU单元
+		get_content_nalu(packet, size, &nalu, &nalu_count);
+		if (nalu_count > 0) {
+			//搜索IMU数据
+			int sei_index = find_nalu_sei(nalu, nalu_count, IMU_UUID);
+			if (sei_index != -1) {
+				if (sei_index + 1 == nalu_count) {
+					//切掉数据
+					memset(nalu[sei_index].data + nalu[sei_index].index, 0, nalu[sei_index].size);
+					uint32_t new_size = size - nalu[sei_index].size;
+
+					if (nalu[sei_index].codeSize == 4) {
+						uint32_t nalu_size = reversebytes(*((uint32_t*)nalu[sei_index].data));
+						if (nalu_size >= new_size - 4)
+						{
+							*((uint32_t*)nalu[sei_index].data) = reversebytes(new_size - 4);
+						}
+					}
+
+					free(nalu);
+					return new_size;
+				}
+			}
+
+			free(nalu);
+		}
+	}
+
+	if (header_change) {
+		packet[0] = tmp_header[0];
+		packet[1] = tmp_header[1];
+		packet[2] = tmp_header[2];
+		packet[3] = tmp_header[3];
+	}
+
+	return size;
+}

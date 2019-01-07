@@ -57,4 +57,7 @@ void free_sei_content(uint8_t**pdata);
 
 int32_t find_annexb(uint8_t * packet, uint32_t size);
 
+//调整packet内存内容
+uint32_t adjust_content_imu(uint8_t * packet, uint32_t size);
+
 #endif
