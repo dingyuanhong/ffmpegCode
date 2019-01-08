@@ -772,14 +772,21 @@ uint32_t adjust_content_imu(uint8_t * packet, uint32_t size)
 			if (sei_index != -1) {
 				if (sei_index + 1 == nalu_count) {
 					//ÇÐµôÊý¾Ý
-					memset(nalu[sei_index].data + nalu[sei_index].index, 0, nalu[sei_index].size);
+					//memset(nalu[sei_index].data + nalu[sei_index].index, 0, nalu[sei_index].size);
 					uint32_t new_size = size - nalu[sei_index].size;
 
-					if (nalu[sei_index].codeSize == 4) {
-						uint32_t nalu_size = reversebytes(*((uint32_t*)nalu[sei_index].data));
-						if (nalu_size >= new_size - 4)
+					if (header_change) {
+						packet[0] = tmp_header[0];
+						packet[1] = tmp_header[1];
+						packet[2] = tmp_header[2];
+						packet[3] = tmp_header[3];
+					}
+
+					if (nalu[0].codeSize == 4) {
+						uint32_t nalu_size = reversebytes(*((uint32_t*)nalu[0].data));
+						if (nalu_size != 1 && nalu_size != new_size - 4)
 						{
-							*((uint32_t*)nalu[sei_index].data) = reversebytes(new_size - 4);
+							*((uint32_t*)nalu[0].data) = reversebytes(new_size - 4);
 						}
 					}
 
