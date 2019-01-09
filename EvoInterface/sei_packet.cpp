@@ -771,8 +771,6 @@ uint32_t adjust_content_imu(uint8_t * packet, uint32_t size)
 			int sei_index = find_nalu_sei(nalu, nalu_count, IMU_UUID);
 			if (sei_index != -1) {
 				if (sei_index + 1 == nalu_count) {
-					//ÇÐµôÊý¾Ý
-					//memset(nalu[sei_index].data + nalu[sei_index].index, 0, nalu[sei_index].size);
 					uint32_t new_size = size - nalu[sei_index].size;
 
 					if (header_change) {
@@ -784,9 +782,9 @@ uint32_t adjust_content_imu(uint8_t * packet, uint32_t size)
 
 					if (nalu[0].codeSize == 4) {
 						uint32_t nalu_size = reversebytes(*((uint32_t*)nalu[0].data));
-						if (nalu_size != 1 && nalu_size != new_size - 4)
+						if (nalu_size != 1 && nalu_size != nalu[0].size - 4)
 						{
-							*((uint32_t*)nalu[0].data) = reversebytes(new_size - 4);
+							*((uint32_t*)nalu[0].data) = reversebytes(nalu[0].size - 4);
 						}
 					}
 

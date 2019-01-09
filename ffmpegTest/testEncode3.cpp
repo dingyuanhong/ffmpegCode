@@ -15,8 +15,21 @@ static AVCodecContext *CreateCodecContent(AVCodecParameters *codecpar)
 }
 #endif
 
+void repairNALU(NALU * nalu, int count) {
+	for (int i = 0; i < count; i++) {
+		if (nalu[i].codeSize == 4) {
+			uint32_t nalu_size = reversebytes(*((uint32_t*)nalu[i].data));
+			if (nalu_size != 1 && nalu_size != nalu[i].size - 4)
+			{
+				*((uint32_t*)nalu[i].data) = reversebytes(nalu[i].size - 4);
+			}
+		}
+	}
+}
+
 //通过NALU生成包
-AVPacket *NALUToPacket(NALU * nalu,int count,bool mp4 = true) {
+AVPacket *NALUToPacket(NALU * nalu,int count) {
+	if (count <= 0) return NULL;
 	//如果开始码长度不一致则需要调整内存长度
 	bool bMemoryAdjust = false;
 	int lastCodeSize = -1;
@@ -34,6 +47,14 @@ AVPacket *NALUToPacket(NALU * nalu,int count,bool mp4 = true) {
 		}
 	}
 
+	bool repareMP4 = false;
+	if (lastCodeSize == 4) {
+		uint32_t nalu_size = *(uint32_t*)(nalu[0].data + nalu[0].index);
+		if (nalu_size != 1) {
+			repareMP4 = true;
+		}
+	}
+
 	//需调整内存长度
 	if (bMemoryAdjust) {
 		//重申请内存复制数据
@@ -41,7 +62,15 @@ AVPacket *NALUToPacket(NALU * nalu,int count,bool mp4 = true) {
 		av_new_packet(packet, size);
 		uint8_t * buffer = packet->data;
 		for (int i = 0; i < count; i++) {
-			*(uint32_t*)buffer = reversebytes(nalu[i].size - nalu[i].codeSize);
+			if (repareMP4) {
+				*(uint32_t*)buffer = reversebytes(nalu[i].size - nalu[i].codeSize);
+			}
+			else {
+				buffer[0] = 0x00;
+				buffer[1] = 0x00;
+				buffer[2] = 0x00;
+				buffer[3] = 0x01;
+			}
 			buffer += 4;
 			memcpy(buffer, nalu[i].data + nalu[i].index + nalu[i].codeSize, nalu[i].size - nalu[i].codeSize);
 			buffer += nalu[i].size - nalu[i].codeSize;
@@ -50,18 +79,18 @@ AVPacket *NALUToPacket(NALU * nalu,int count,bool mp4 = true) {
 	}
 	else {
 		//直接调整NALU头数据
-		if (lastCodeSize == 4) {
+		if (lastCodeSize == 4 && repareMP4) {
 			for (int i = 0; i < count; i++) {
-				if (mp4) {
-					*(uint32_t*)(nalu[i].data + nalu[i].index) = reversebytes(nalu[i].size - nalu[i].codeSize);
-				}
-				else {
-					uint8_t * buffer = nalu[i].data + nalu[i].index;
-					buffer[0] = 0x00;
-					buffer[1] = 0x00;
-					buffer[2] = 0x00;
-					buffer[3] = 0x01;
-				}	
+				*(uint32_t*)(nalu[i].data + nalu[i].index) = reversebytes(nalu[i].size - nalu[i].codeSize);
+			}
+		}
+		else if (lastCodeSize == 4) {
+			for (int i = 0; i < count; i++) {
+				uint8_t * buffer = nalu[i].data + nalu[i].index;
+				buffer[0] = 0x00;
+				buffer[1] = 0x00;
+				buffer[2] = 0x00;
+				buffer[3] = 0x01;
 			}
 		}
 		else if (lastCodeSize == 3) {
@@ -165,8 +194,8 @@ int testEncode3(const char * infile, const char * outfile)
 						if (sei_index != -1) {
 							if (sei_index + 1 == nalu_count) {
 								//切掉数据
-								//memset(nalu[sei_index].data + nalu[sei_index].index,0, nalu[sei_index].size);
-								//packet->size -= nalu[sei_index].size;
+								repairNALU(nalu, nalu_count);
+								packet->size -= nalu[sei_index].size;
 							}
 						}
 
@@ -175,8 +204,8 @@ int testEncode3(const char * infile, const char * outfile)
 						if (pp != NULL) {
 							av_copy_packet_side_data(pp, packet);
 							av_packet_copy_props(pp, packet);
-							av_packet_free(&packet);
-							packet = pp;
+							av_copy_packet(packet,pp);
+							av_packet_free(&pp);
 						}
 						free(nalu);
 					}

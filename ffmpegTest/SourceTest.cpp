@@ -217,7 +217,8 @@ int main(int argv ,char* argc[])
 	}
 	else if (strcasecmp(type, "sei_test") == 0)
 	{
-		testSEI();
+		//testSEI();
+		testIMU();
 	}
 	else
 	{
