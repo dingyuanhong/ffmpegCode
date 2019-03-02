@@ -13,7 +13,7 @@ int testDecodeSEI(const char * file)
 	EvoMediaSource source;
 	
 	//file += "gopro.mp4";
-	EvoMediaSourceConfig config = { true,true };
+	EvoMediaSourceConfig config = { false,false };
 	int ret = source.Open(file, &config);
 	if (ret != 0)
 	{
@@ -24,7 +24,7 @@ int testDecodeSEI(const char * file)
 
 	VideoDecoder *decoder = NULL;
 	AVCodecContext	*codecContext = NULL;
-	bool newContext = false;
+	bool newContext = true;
 	if (newContext) {
 		AVCodec *codec = avcodec_find_decoder(AV_CODEC_ID_H264);
 		if (!codec) return -1;

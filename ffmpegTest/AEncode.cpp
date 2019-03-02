@@ -8,6 +8,7 @@ AEncode::AEncode(AVCodecContext *codecContext)
 
 int AEncode::Encode(AVFrame *frame, AVPacket ** pkt)
 {
+#ifndef USE_NEW_API
 	AVPacket * packet = av_packet_alloc();
 	av_init_packet(packet);
 
@@ -31,13 +32,14 @@ int AEncode::Encode(AVFrame *frame, AVPacket ** pkt)
 		av_packet_unref(packet);
 		av_packet_free(&packet);
 	}
-
+#endif
 	return 0;
 	
 }
 
 int AEncode::Encode(AVPacket ** pkt)
 {
+#ifndef USE_NEW_API
 	if (encode_count_ > 0)
 	{
 		AVPacket * packet = av_packet_alloc();
@@ -63,6 +65,9 @@ int AEncode::Encode(AVPacket ** pkt)
 		}
 	}
 	return encode_count_;
+#else
+	return 0;
+#endif
 }
 
 void AEncode::Flush() {

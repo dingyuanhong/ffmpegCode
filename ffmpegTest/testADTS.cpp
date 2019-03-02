@@ -39,9 +39,11 @@ int testADTS(const char * infile, const char * outfile)
 	}
 
 	AVStream * stream = formatContext->streams[audioIndex];
-
+#ifdef USE_NEW_API
+	AVCodecContext *codecContext_ = CreateCodecContent(stream->codecpar);
+#else
 	AVCodecContext *codecContext_ = stream->codec;
-
+#endif
 	if (stream == NULL || !(
 		codecContext_ != NULL &&
 		codecContext_->codec_type == AVMEDIA_TYPE_AUDIO &&
@@ -113,7 +115,11 @@ int decodeAAC(const char * infile, const char * outfile)
 
 	AVStream * stream = formatContext->streams[audioIndex];
 
+#ifdef USE_NEW_API
+	AVCodecContext *codecContext_ = CreateCodecContent(stream->codecpar);
+#else
 	AVCodecContext *codecContext_ = stream->codec;
+#endif
 
 	if (stream == NULL || !(
 		codecContext_ != NULL &&
@@ -186,7 +192,11 @@ int processAAC(const char * infile, const char * outfile)
 
 	AVStream * stream = formatContext->streams[audioIndex];
 
+#ifdef USE_NEW_API
+	AVCodecContext *codecContext_ = CreateCodecContent(stream->codecpar);
+#else
 	AVCodecContext *codecContext_ = stream->codec;
+#endif
 
 	if (stream == NULL || !(
 		codecContext_ != NULL &&

@@ -145,7 +145,7 @@ int AACEncode(AACEncoderObj * obj, unsigned char * aacBuffer)
     av_init_packet(&(encoderObj->AACPacket));
     encoderObj->AACPacket.data = NULL;    // packet data will be allocated by the encoder
     encoderObj->AACPacket.size = 0;
-
+#ifndef USE_NEW_API
     int u_size = avcodec_encode_audio2(
         encoderObj->AACCodecCtx,
         &(encoderObj->AACPacket),
@@ -158,5 +158,6 @@ int AACEncode(AACEncoderObj * obj, unsigned char * aacBuffer)
         memcpy(aacBuffer, encoderObj->AACPacket.data, aacBufferLen);
     }
     av_free_packet(&(encoderObj->AACPacket));
+#endif
     return aacBufferLen;
 }

@@ -38,6 +38,8 @@ int getExtraData(const char * file);
 //aac≤‚ ‘
 int simplest_aac_parser(char *url);
 
+bool EVOReconductanceDone(const char *url, const char * outUrl);
+
 #ifdef _WIN32
 #pragma comment(lib,"EvoInterface.lib")
 #define strcasecmp _stricmp
@@ -219,6 +221,10 @@ int main(int argv ,char* argc[])
 	{
 		//testSEI();
 		testIMU();
+	}
+	else if (strcasecmp(type, "transform") == 0)
+	{
+		EVOReconductanceDone(infile, outfile);
 	}
 	else
 	{

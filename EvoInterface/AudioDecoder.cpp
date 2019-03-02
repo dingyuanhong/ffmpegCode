@@ -237,21 +237,6 @@ int AudioDecoder::DecodePacket(AVFrame **evoResult)
 	}
 #else
 	int decoded = 0;
-	if (packet != NULL)
-	{
-		decoded = avcodec_send_packet(this->AudioCodecCtx, packet);
-		if (decoded < 0)
-		{
-			if (decoded == AVERROR(EAGAIN)) return 0;
-			char errbuf[1024] = { 0 };
-			av_strerror(decoded, errbuf, 1024);
-			LOGA("AudioDecoder::DecodePacket:avcodec_send_packet:%d(%s).\n", decoded, errbuf);
-			if (decoded == AVERROR_EOF) return -1;
-			if (decoded == AVERROR(EINVAL)) return -1;
-			if (AVERROR(ENOMEM)) return -1;
-			return -1;
-		}
-	}
 
 	decoded = avcodec_receive_frame(this->AudioCodecCtx, this->AudioFrame);
 	if (decoded < 0)

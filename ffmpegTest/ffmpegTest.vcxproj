@@ -184,6 +184,7 @@
     <ClCompile Include="testInterface.cpp" />
     <ClCompile Include="testMeidaControl.cpp" />
     <ClCompile Include="testMP4Encode.cpp" />
+    <ClCompile Include="Transform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AACEncoder.h" />
